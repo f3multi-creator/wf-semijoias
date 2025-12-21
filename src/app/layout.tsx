@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { CartDrawer } from "@/components/cart/CartDrawer";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -73,10 +74,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${cormorant.variable} ${outfit.variable}`}>
       <body className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <CartDrawer />
+        <AuthProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <CartDrawer />
+        </AuthProvider>
       </body>
     </html>
   );
