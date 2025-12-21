@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
+import { useCart } from "@/store/cart";
 
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const { getItemCount, openCart } = useCart();
 
     const navigation = [
         { name: "Novidades", href: "/novidades" },
@@ -57,9 +60,14 @@ export function Header() {
 
                     {/* Logo */}
                     <Link href="/" className="flex-shrink-0">
-                        <h1 className="font-display text-2xl md:text-3xl tracking-[0.2em] text-dark">
-                            WF <span className="text-gold">SEMIJOIAS</span>
-                        </h1>
+                        <Image
+                            src="/logo-dark.png"
+                            alt="WF Semijoias"
+                            width={140}
+                            height={50}
+                            className="h-12 w-auto"
+                            priority
+                        />
                     </Link>
 
                     {/* Desktop Navigation */}
@@ -141,8 +149,8 @@ export function Header() {
                         </Link>
 
                         {/* Cart */}
-                        <Link
-                            href="/carrinho"
+                        <button
+                            onClick={openCart}
                             className="p-2 hover:text-gold transition-colors relative"
                             aria-label="Carrinho"
                         >
@@ -160,10 +168,12 @@ export function Header() {
                                 />
                             </svg>
                             {/* Cart Count Badge */}
-                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-white text-xs rounded-full flex items-center justify-center">
-                                0
-                            </span>
-                        </Link>
+                            {getItemCount() > 0 && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-white text-xs rounded-full flex items-center justify-center">
+                                    {getItemCount()}
+                                </span>
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>

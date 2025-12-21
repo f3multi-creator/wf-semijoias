@@ -1,56 +1,38 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ProductCard, Product } from "@/components/product/ProductCard";
+import { ProductCard } from "@/components/product/ProductCard";
+import { getFeaturedProducts, getCategories } from "@/lib/db";
 
-// Produtos de exemplo (depois virão do Supabase)
-const featuredProducts: Product[] = [
-  {
-    id: "1",
-    name: "Brinco Gota Ametista",
-    slug: "brinco-gota-ametista",
-    price: 289.90,
-    comparePrice: 349.90,
-    images: ["/products/brinco-ametista-1.jpg", "/products/brinco-ametista-2.jpg"],
-    category: "Brincos",
-    isNew: true,
-  },
-  {
-    id: "2",
-    name: "Colar Ponto de Luz",
-    slug: "colar-ponto-de-luz",
-    price: 199.90,
-    images: ["/products/colar-ponto-luz-1.jpg"],
-    category: "Colares",
-    isFeatured: true,
-  },
-  {
-    id: "3",
-    name: "Anel Quartzo Rosa",
-    slug: "anel-quartzo-rosa",
-    price: 179.90,
-    images: ["/products/anel-quartzo-1.jpg"],
-    category: "Anéis",
-    isNew: true,
-  },
-  {
-    id: "4",
-    name: "Pulseira Turmalina",
-    slug: "pulseira-turmalina",
-    price: 259.90,
-    comparePrice: 299.90,
-    images: ["/products/pulseira-turmalina-1.jpg"],
-    category: "Pulseiras",
-  },
-];
+// Revalidar a cada 60 segundos
+export const revalidate = 60;
 
-const categories = [
-  { name: "Brincos", slug: "brincos", image: "/categories/brincos.jpg" },
-  { name: "Colares", slug: "colares", image: "/categories/colares.jpg" },
-  { name: "Anéis", slug: "aneis", image: "/categories/aneis.jpg" },
-  { name: "Pulseiras", slug: "pulseiras", image: "/categories/pulseiras.jpg" },
-];
+export default async function HomePage() {
+  // Buscar dados do Supabase
+  const [products, categories] = await Promise.all([
+    getFeaturedProducts(8),
+    getCategories(),
+  ]);
 
-export default function HomePage() {
+  // Transformar produtos do Supabase para o formato do ProductCard
+  const formattedProducts = products.map((product: any) => ({
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    price: product.price,
+    comparePrice: product.compare_price,
+    images: product.images?.map((img: any) => img.url) || ["/products/brinco-ametista-1.jpg"],
+    category: product.category?.name || "Semijoias",
+    isNew: product.is_new,
+    isFeatured: product.is_featured,
+  }));
+
+  // Formatar categorias
+  const formattedCategories = categories.map((cat: any) => ({
+    name: cat.name,
+    slug: cat.slug,
+    image: cat.image_url || `/categories/${cat.slug}.jpg`,
+  }));
+
   return (
     <>
       {/* Hero Section */}
@@ -106,7 +88,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {categories.map((category) => (
+            {formattedCategories.map((category) => (
               <Link
                 key={category.slug}
                 href={`/categoria/${category.slug}`}
@@ -156,11 +138,18 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {formattedProducts.length > 0 ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+              {formattedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-taupe">Nenhum produto em destaque ainda.</p>
+              <p className="text-sm text-taupe mt-2">Cadastre produtos no painel admin.</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -236,7 +225,7 @@ export default function HomePage() {
                 </svg>
               </div>
               <h4 className="font-display text-lg text-dark mb-1">Frete Grátis</h4>
-              <p className="text-taupe text-sm">Acima de R$ 299</p>
+              <p className="text-taupe text-sm">Acima de R$ 300</p>
             </div>
             <div>
               <div className="w-12 h-12 mx-auto mb-3 text-gold">

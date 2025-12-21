@@ -3,79 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/product/AddToCartButton";
 import { ProductCard } from "@/components/product/ProductCard";
+import { getProductBySlug, getProductsByCategory } from "@/lib/db";
 
-// Dados de exemplo (virão do Supabase)
-const products = [
-    {
-        id: "1",
-        name: "Brinco Gota Ametista",
-        slug: "brinco-gota-ametista",
-        price: 289.90,
-        comparePrice: 349.90,
-        description: "Brincos delicados com pedras de ametista brasileira em formato de gota. Acabamento em banho de ouro 18k. Perfeitos para ocasiões especiais ou para elevar seu look do dia a dia.",
-        images: ["/products/brinco-ametista-1.jpg", "/products/brinco-ametista-2.jpg"],
-        category: "Brincos",
-        stock_quantity: 15,
-        details: [
-            { label: "Material", value: "Banho de ouro 18k" },
-            { label: "Pedra", value: "Ametista brasileira" },
-            { label: "Tamanho", value: "3cm de comprimento" },
-            { label: "Fecho", value: "Tarraxa borboleta" },
-        ],
-        care: "Evite contato com produtos químicos, perfumes e água. Guarde separadamente de outras joias para evitar riscos.",
-    },
-    {
-        id: "2",
-        name: "Colar Ponto de Luz",
-        slug: "colar-ponto-de-luz",
-        price: 199.90,
-        description: "Colar delicado com pingente ponto de luz em cristal. Corrente fina em banho de ouro 18k. Ideal para usar sozinho ou em composições com outros colares.",
-        images: ["/products/colar-ponto-luz-1.jpg"],
-        category: "Colares",
-        stock_quantity: 20,
-        details: [
-            { label: "Material", value: "Banho de ouro 18k" },
-            { label: "Pedra", value: "Cristal" },
-            { label: "Comprimento", value: "45cm (ajustável)" },
-            { label: "Fecho", value: "Fecho lagosta" },
-        ],
-        care: "Evite contato com produtos químicos, perfumes e água. Guarde separadamente de outras joias para evitar riscos.",
-    },
-    {
-        id: "3",
-        name: "Anel Quartzo Rosa",
-        slug: "anel-quartzo-rosa",
-        price: 179.90,
-        description: "Anel delicado com pedra de quartzo rosa natural. Aro ajustável em banho de ouro 18k. A pedra do amor e da compaixão.",
-        images: ["/products/anel-quartzo-1.jpg"],
-        category: "Anéis",
-        stock_quantity: 12,
-        details: [
-            { label: "Material", value: "Banho de ouro 18k" },
-            { label: "Pedra", value: "Quartzo rosa natural" },
-            { label: "Aro", value: "Ajustável" },
-        ],
-        care: "Evite contato com produtos químicos, perfumes e água. Guarde separadamente de outras joias para evitar riscos.",
-    },
-    {
-        id: "4",
-        name: "Pulseira Turmalina",
-        slug: "pulseira-turmalina",
-        price: 259.90,
-        comparePrice: 299.90,
-        description: "Pulseira com pedras de turmalina multicolorida brasileira. Acabamento em banho de ouro 18k. Peça única que combina energia e elegância.",
-        images: ["/products/pulseira-turmalina-1.jpg"],
-        category: "Pulseiras",
-        stock_quantity: 8,
-        details: [
-            { label: "Material", value: "Banho de ouro 18k" },
-            { label: "Pedra", value: "Turmalina multicolorida" },
-            { label: "Comprimento", value: "18cm (ajustável)" },
-            { label: "Fecho", value: "Fecho lagosta" },
-        ],
-        care: "Evite contato com produtos químicos, perfumes e água. Guarde separadamente de outras joias para evitar riscos.",
-    },
-];
+// Revalidar a cada 60 segundos
+export const revalidate = 60;
 
 interface ProductPageProps {
     params: Promise<{ slug: string }>;
@@ -83,18 +14,40 @@ interface ProductPageProps {
 
 export default async function ProductPage({ params }: ProductPageProps) {
     const { slug } = await params;
-    const product = products.find((p) => p.slug === slug);
+
+    // Buscar produto do Supabase
+    const product = await getProductBySlug(slug);
 
     if (!product) {
         notFound();
     }
 
-    const relatedProducts = products
-        .filter((p) => p.category === product.category && p.id !== product.id)
-        .slice(0, 4);
+    // Buscar produtos relacionados da mesma categoria
+    const relatedProductsRaw = product.category
+        ? await getProductsByCategory(product.category.slug, 5)
+        : [];
 
-    const discount = product.comparePrice
-        ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)
+    // Excluir o produto atual e limitar a 4
+    const relatedProducts = relatedProductsRaw
+        .filter((p: any) => p.id !== product.id)
+        .slice(0, 4)
+        .map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            price: p.price,
+            comparePrice: p.compare_price,
+            images: p.images?.map((img: any) => img.url) || ["/products/brinco-ametista-1.jpg"],
+            category: p.category?.name || "Semijoias",
+        }));
+
+    // Preparar imagens do produto
+    const images = product.images?.length > 0
+        ? product.images.sort((a: any, b: any) => a.position - b.position).map((img: any) => img.url)
+        : ["/products/brinco-ametista-1.jpg"];
+
+    const discount = product.compare_price
+        ? Math.round(((product.compare_price - product.price) / product.compare_price) * 100)
         : 0;
 
     const formatPrice = (value: number) => {
@@ -118,10 +71,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         <li>/</li>
                         <li>
                             <Link
-                                href={`/categoria/${product.category.toLowerCase()}`}
+                                href={`/categoria/${product.category?.slug || 'produtos'}`}
                                 className="hover:text-gold transition-colors"
                             >
-                                {product.category}
+                                {product.category?.name || 'Produtos'}
                             </Link>
                         </li>
                         <li>/</li>
@@ -139,7 +92,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             {/* Main Image */}
                             <div className="relative aspect-square bg-beige overflow-hidden">
                                 <Image
-                                    src={product.images[0]}
+                                    src={images[0]}
                                     alt={product.name}
                                     fill
                                     sizes="(max-width: 1024px) 100vw, 50vw"
@@ -154,9 +107,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             </div>
 
                             {/* Thumbnails */}
-                            {product.images.length > 1 && (
+                            {images.length > 1 && (
                                 <div className="flex gap-2">
-                                    {product.images.map((image, index) => (
+                                    {images.map((image: string, index: number) => (
                                         <button
                                             key={index}
                                             className="relative w-20 h-20 bg-beige overflow-hidden border-2 border-transparent hover:border-gold transition-colors"
@@ -177,7 +130,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         {/* Product Info */}
                         <div className="lg:py-8">
                             <p className="text-gold uppercase tracking-[0.2em] text-sm mb-2">
-                                {product.category}
+                                {product.category?.name || 'Semijoias'}
                             </p>
                             <h1 className="font-display text-3xl md:text-4xl text-dark mb-4">
                                 {product.name}
@@ -188,9 +141,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
                                 <span className="text-2xl text-dark font-medium">
                                     {formatPrice(product.price)}
                                 </span>
-                                {product.comparePrice && (
+                                {product.compare_price && (
                                     <span className="text-lg text-taupe line-through">
-                                        {formatPrice(product.comparePrice)}
+                                        {formatPrice(product.compare_price)}
                                     </span>
                                 )}
                             </div>
@@ -200,9 +153,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             </p>
 
                             {/* Description */}
-                            <p className="text-brown leading-relaxed mb-8">
-                                {product.description}
-                            </p>
+                            {product.description && (
+                                <p className="text-brown leading-relaxed mb-8">
+                                    {product.description}
+                                </p>
+                            )}
 
                             {/* Stock Status */}
                             <div className="flex items-center gap-2 mb-6">
@@ -228,7 +183,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                                     name: product.name,
                                     slug: product.slug,
                                     price: product.price,
-                                    image: product.images[0],
+                                    image: images[0],
                                     stock_quantity: product.stock_quantity,
                                 }}
                             />
@@ -240,30 +195,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
                                 </p>
                             </div>
 
-                            {/* Details */}
-                            <div className="mt-8 pt-8 border-t border-beige">
-                                <h3 className="font-display text-xl text-dark mb-4">
-                                    Detalhes do Produto
-                                </h3>
-                                <dl className="space-y-2">
-                                    {product.details.map((detail, index) => (
-                                        <div key={index} className="flex">
-                                            <dt className="w-32 text-taupe text-sm">{detail.label}</dt>
-                                            <dd className="text-dark text-sm">{detail.value}</dd>
-                                        </div>
-                                    ))}
-                                </dl>
-                            </div>
-
-                            {/* Care */}
-                            <div className="mt-8 pt-8 border-t border-beige">
-                                <h3 className="font-display text-xl text-dark mb-4">
-                                    Cuidados
-                                </h3>
-                                <p className="text-brown text-sm leading-relaxed">
-                                    {product.care}
+                            {/* SKU */}
+                            {product.sku && (
+                                <p className="mt-4 text-xs text-taupe">
+                                    SKU: {product.sku}
                                 </p>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -277,19 +214,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             Você também pode gostar
                         </h2>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                            {relatedProducts.map((p) => (
-                                <ProductCard
-                                    key={p.id}
-                                    product={{
-                                        id: p.id,
-                                        name: p.name,
-                                        slug: p.slug,
-                                        price: p.price,
-                                        comparePrice: p.comparePrice,
-                                        images: p.images,
-                                        category: p.category,
-                                    }}
-                                />
+                            {relatedProducts.map((p: any) => (
+                                <ProductCard key={p.id} product={p} />
                             ))}
                         </div>
                     </div>
@@ -297,11 +223,4 @@ export default async function ProductPage({ params }: ProductPageProps) {
             )}
         </>
     );
-}
-
-// Generate static params for demo products
-export function generateStaticParams() {
-    return products.map((product) => ({
-        slug: product.slug,
-    }));
 }

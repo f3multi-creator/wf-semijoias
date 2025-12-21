@@ -1,51 +1,31 @@
 import Link from "next/link";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase";
 
-// Dados de exemplo (virão do Supabase)
-const products = [
-    {
-        id: "1",
-        name: "Brinco Gota Ametista",
-        slug: "brinco-gota-ametista",
-        price: 289.90,
-        category: "Brincos",
-        stock: 15,
-        status: "active",
-        image: "/products/brinco-ametista-1.jpg",
-    },
-    {
-        id: "2",
-        name: "Colar Ponto de Luz",
-        slug: "colar-ponto-de-luz",
-        price: 199.90,
-        category: "Colares",
-        stock: 20,
-        status: "active",
-        image: "/products/colar-ponto-luz-1.jpg",
-    },
-    {
-        id: "3",
-        name: "Anel Quartzo Rosa",
-        slug: "anel-quartzo-rosa",
-        price: 179.90,
-        category: "Anéis",
-        stock: 2,
-        status: "active",
-        image: "/products/anel-quartzo-1.jpg",
-    },
-    {
-        id: "4",
-        name: "Pulseira Turmalina",
-        slug: "pulseira-turmalina",
-        price: 259.90,
-        category: "Pulseiras",
-        stock: 0,
-        status: "inactive",
-        image: "/products/pulseira-turmalina-1.jpg",
-    },
-];
+// Revalidar a cada 60 segundos
+export const revalidate = 60;
 
-export default function AdminProducts() {
+async function getAdminProducts() {
+    const { data, error } = await supabase
+        .from('products')
+        .select(`
+      *,
+      category:categories(name, slug),
+      images:product_images(url, is_primary)
+    `)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Erro ao buscar produtos:', error);
+        return [];
+    }
+
+    return data || [];
+}
+
+export default async function AdminProducts() {
+    const products = await getAdminProducts();
+
     const formatPrice = (value: number) => {
         return value.toLocaleString("pt-BR", {
             style: "currency",
@@ -98,64 +78,82 @@ export default function AdminProducts() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-beige">
-                            {products.map((product) => (
-                                <tr key={product.id} className="hover:bg-beige/30">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="relative w-12 h-12 bg-beige">
-                                                <Image
-                                                    src={product.image}
-                                                    alt={product.name}
-                                                    fill
-                                                    sizes="48px"
-                                                    className="object-cover"
-                                                />
-                                            </div>
-                                            <div>
-                                                <p className="text-dark font-medium">{product.name}</p>
-                                                <p className="text-taupe text-xs">/{product.slug}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-dark">{product.category}</td>
-                                    <td className="px-6 py-4 text-dark">{formatPrice(product.price)}</td>
-                                    <td className="px-6 py-4">
-                                        <span
-                                            className={`${product.stock === 0
-                                                    ? "text-red-600"
-                                                    : product.stock <= 5
-                                                        ? "text-yellow-600"
-                                                        : "text-green-600"
-                                                }`}
-                                        >
-                                            {product.stock}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span
-                                            className={`px-2 py-1 text-xs rounded ${product.status === "active"
-                                                    ? "bg-green-100 text-green-800"
-                                                    : "bg-gray-100 text-gray-800"
-                                                }`}
-                                        >
-                                            {product.status === "active" ? "Ativo" : "Inativo"}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex gap-2">
-                                            <Link
-                                                href={`/admin/produtos/${product.id}`}
-                                                className="text-gold hover:underline text-sm"
-                                            >
-                                                Editar
-                                            </Link>
-                                            <button className="text-red-600 hover:underline text-sm">
-                                                Excluir
-                                            </button>
-                                        </div>
+                            {products.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-taupe">
+                                        Nenhum produto cadastrado ainda.
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                products.map((product: any) => {
+                                    const primaryImage = product.images?.find((img: any) => img.is_primary)?.url
+                                        || product.images?.[0]?.url
+                                        || "/products/brinco-ametista-1.jpg";
+
+                                    return (
+                                        <tr key={product.id} className="hover:bg-beige/30">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative w-12 h-12 bg-beige">
+                                                        <Image
+                                                            src={primaryImage}
+                                                            alt={product.name}
+                                                            fill
+                                                            sizes="48px"
+                                                            className="object-cover"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-dark font-medium">{product.name}</p>
+                                                        <p className="text-taupe text-xs">/{product.slug}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-dark">{product.category?.name || '-'}</td>
+                                            <td className="px-6 py-4 text-dark">{formatPrice(product.price)}</td>
+                                            <td className="px-6 py-4">
+                                                <span
+                                                    className={`${product.stock_quantity === 0
+                                                            ? "text-red-600"
+                                                            : product.stock_quantity <= (product.low_stock_threshold || 5)
+                                                                ? "text-yellow-600"
+                                                                : "text-green-600"
+                                                        }`}
+                                                >
+                                                    {product.stock_quantity}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span
+                                                    className={`px-2 py-1 text-xs rounded ${product.is_active
+                                                            ? "bg-green-100 text-green-800"
+                                                            : "bg-gray-100 text-gray-800"
+                                                        }`}
+                                                >
+                                                    {product.is_active ? "Ativo" : "Inativo"}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex gap-2">
+                                                    <Link
+                                                        href={`/admin/produtos/${product.id}`}
+                                                        className="text-gold hover:underline text-sm"
+                                                    >
+                                                        Editar
+                                                    </Link>
+                                                    <Link
+                                                        href={`/produto/${product.slug}`}
+                                                        target="_blank"
+                                                        className="text-taupe hover:underline text-sm"
+                                                    >
+                                                        Ver
+                                                    </Link>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
                         </tbody>
                     </table>
                 </div>
