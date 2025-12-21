@@ -1,0 +1,423 @@
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useCart, formatPrice } from "@/store/cart";
+
+export default function CheckoutPage() {
+    const { items, getSubtotal, getShipping, getTotal, removeItem, updateQuantity } = useCart();
+    const [step, setStep] = useState<"cart" | "shipping" | "payment">("cart");
+    const [isLoading, setIsLoading] = useState(false);
+    const [couponCode, setCouponCode] = useState("");
+    const [couponApplied, setCouponApplied] = useState(false);
+    const [shippingCep, setShippingCep] = useState("");
+    const [shippingOptions, setShippingOptions] = useState<any[]>([]);
+    const [selectedShipping, setSelectedShipping] = useState<any>(null);
+
+    const subtotal = getSubtotal();
+    const shipping = selectedShipping?.price || getShipping(subtotal);
+    const discount = couponApplied ? subtotal * 0.1 : 0; // 10% de desconto exemplo
+    const total = subtotal + shipping - discount;
+
+    // Simula cálculo de frete
+    const calculateShipping = async () => {
+        if (shippingCep.length < 8) return;
+
+        setIsLoading(true);
+        // Simula chamada à API do Melhor Envio
+        setTimeout(() => {
+            setShippingOptions([
+                { id: 1, name: "PAC", company: "Correios", price: 19.90, delivery_time: 7 },
+                { id: 2, name: "SEDEX", company: "Correios", price: 34.90, delivery_time: 3 },
+                { id: 3, name: "Jadlog", company: "Jadlog", price: 24.90, delivery_time: 5 },
+            ]);
+            setIsLoading(false);
+        }, 1000);
+    };
+
+    // Simula aplicação de cupom
+    const applyCoupon = () => {
+        if (couponCode.toUpperCase() === "BEMVINDA10") {
+            setCouponApplied(true);
+        }
+    };
+
+    // Iniciar pagamento com Mercado Pago
+    const handlePayment = async () => {
+        setIsLoading(true);
+
+        try {
+            // Chama a API para criar a preferência do Mercado Pago
+            const response = await fetch("/api/checkout/create-preference", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    items: items.map((item) => ({
+                        id: item.product.id,
+                        name: item.product.name,
+                        quantity: item.quantity,
+                        price: item.product.price,
+                        image: item.product.image,
+                    })),
+                    shipping: selectedShipping,
+                    discount,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.initPoint) {
+                // Redireciona para o checkout do Mercado Pago
+                window.location.href = data.initPoint;
+            }
+        } catch (error) {
+            console.error("Erro ao criar pagamento:", error);
+            alert("Erro ao processar pagamento. Tente novamente.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (items.length === 0) {
+        return (
+            <section className="section bg-cream min-h-[60vh] flex items-center">
+                <div className="container text-center">
+                    <div className="max-w-md mx-auto">
+                        <div className="w-20 h-20 mx-auto mb-6 text-taupe">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                        </div>
+                        <h1 className="font-display text-3xl text-dark mb-4">
+                            Seu carrinho está vazio
+                        </h1>
+                        <p className="text-taupe mb-8">
+                            Adicione algumas peças lindas antes de finalizar sua compra!
+                        </p>
+                        <Link href="/" className="btn btn-primary">
+                            Explorar Produtos
+                        </Link>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    return (
+        <section className="section bg-cream">
+            <div className="container">
+                <h1 className="font-display text-3xl md:text-4xl text-dark mb-8">
+                    Finalizar Compra
+                </h1>
+
+                {/* Progress Steps */}
+                <div className="flex items-center gap-4 mb-12">
+                    {["cart", "shipping", "payment"].map((s, index) => (
+                        <div key={s} className="flex items-center">
+                            <button
+                                onClick={() => setStep(s as any)}
+                                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${step === s
+                                        ? "bg-gold text-white"
+                                        : "bg-beige text-taupe hover:bg-sand"
+                                    }`}
+                            >
+                                {index + 1}
+                            </button>
+                            <span
+                                className={`ml-2 text-sm hidden sm:inline ${step === s ? "text-dark" : "text-taupe"
+                                    }`}
+                            >
+                                {s === "cart" ? "Carrinho" : s === "shipping" ? "Entrega" : "Pagamento"}
+                            </span>
+                            {index < 2 && (
+                                <div className="w-8 sm:w-16 h-px bg-beige mx-4" />
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                <div className="grid lg:grid-cols-3 gap-8">
+                    {/* Main Content */}
+                    <div className="lg:col-span-2">
+                        {/* Cart Step */}
+                        {step === "cart" && (
+                            <div className="bg-offwhite p-6 space-y-4">
+                                <h2 className="font-display text-xl text-dark mb-4">
+                                    Itens do Carrinho
+                                </h2>
+                                {items.map((item) => (
+                                    <div key={item.product.id} className="flex gap-4 p-4 bg-cream">
+                                        <div className="relative w-24 h-24 flex-shrink-0 bg-beige">
+                                            <Image
+                                                src={item.product.image || "/placeholder-product.jpg"}
+                                                alt={item.product.name}
+                                                fill
+                                                sizes="96px"
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <Link
+                                                href={`/produto/${item.product.slug}`}
+                                                className="font-display text-dark hover:text-gold transition-colors"
+                                            >
+                                                {item.product.name}
+                                            </Link>
+                                            <p className="text-gold font-medium mt-1">
+                                                {formatPrice(item.product.price)}
+                                            </p>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <button
+                                                    onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                                    className="w-8 h-8 flex items-center justify-center border border-beige hover:border-gold"
+                                                >
+                                                    -
+                                                </button>
+                                                <span className="w-8 text-center">{item.quantity}</span>
+                                                <button
+                                                    onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                                                    className="w-8 h-8 flex items-center justify-center border border-beige hover:border-gold"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end justify-between">
+                                            <button
+                                                onClick={() => removeItem(item.product.id)}
+                                                className="text-taupe hover:text-red-500 transition-colors"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                            <p className="font-medium text-dark">
+                                                {formatPrice(item.product.price * item.quantity)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                                <button
+                                    onClick={() => setStep("shipping")}
+                                    className="btn btn-primary w-full mt-4"
+                                >
+                                    Continuar para Entrega
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Shipping Step */}
+                        {step === "shipping" && (
+                            <div className="bg-offwhite p-6">
+                                <h2 className="font-display text-xl text-dark mb-6">
+                                    Endereço de Entrega
+                                </h2>
+
+                                {/* CEP Calculator */}
+                                <div className="mb-6">
+                                    <label className="block text-sm text-taupe mb-2">
+                                        Calcule o frete
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Digite seu CEP"
+                                            value={shippingCep}
+                                            onChange={(e) => setShippingCep(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                                            className="flex-1 px-4 py-3 border border-beige bg-cream focus:outline-none focus:border-gold"
+                                        />
+                                        <button
+                                            onClick={calculateShipping}
+                                            disabled={isLoading || shippingCep.length < 8}
+                                            className="btn btn-outline"
+                                        >
+                                            {isLoading ? "..." : "Calcular"}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Shipping Options */}
+                                {shippingOptions.length > 0 && (
+                                    <div className="space-y-3 mb-6">
+                                        <p className="text-sm text-taupe">Opções de entrega:</p>
+                                        {shippingOptions.map((option) => (
+                                            <label
+                                                key={option.id}
+                                                className={`flex items-center justify-between p-4 border cursor-pointer transition-colors ${selectedShipping?.id === option.id
+                                                        ? "border-gold bg-cream"
+                                                        : "border-beige hover:border-sand"
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <input
+                                                        type="radio"
+                                                        name="shipping"
+                                                        checked={selectedShipping?.id === option.id}
+                                                        onChange={() => setSelectedShipping(option)}
+                                                        className="accent-gold"
+                                                    />
+                                                    <div>
+                                                        <p className="text-dark">
+                                                            {option.name} - {option.company}
+                                                        </p>
+                                                        <p className="text-taupe text-sm">
+                                                            Entrega em até {option.delivery_time} dias úteis
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className="font-medium text-dark">
+                                                    {subtotal >= 300 && option.price <= 25
+                                                        ? "Grátis"
+                                                        : formatPrice(option.price)}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => setStep("cart")}
+                                        className="btn btn-outline"
+                                    >
+                                        Voltar
+                                    </button>
+                                    <button
+                                        onClick={() => setStep("payment")}
+                                        disabled={!selectedShipping}
+                                        className="btn btn-primary flex-1"
+                                    >
+                                        Continuar para Pagamento
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Payment Step */}
+                        {step === "payment" && (
+                            <div className="bg-offwhite p-6">
+                                <h2 className="font-display text-xl text-dark mb-6">
+                                    Pagamento
+                                </h2>
+
+                                <p className="text-brown mb-6">
+                                    Você será redirecionado para o Mercado Pago para finalizar o pagamento de forma segura.
+                                </p>
+
+                                <div className="p-4 bg-cream border border-beige mb-6">
+                                    <p className="text-sm text-taupe mb-2">Formas de pagamento aceitas:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className="px-3 py-1 bg-dark text-cream text-xs">PIX</span>
+                                        <span className="px-3 py-1 bg-dark text-cream text-xs">Cartão até 12x</span>
+                                        <span className="px-3 py-1 bg-dark text-cream text-xs">Boleto</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => setStep("shipping")}
+                                        className="btn btn-outline"
+                                    >
+                                        Voltar
+                                    </button>
+                                    <button
+                                        onClick={handlePayment}
+                                        disabled={isLoading}
+                                        className="btn btn-primary flex-1"
+                                    >
+                                        {isLoading ? "Processando..." : `Pagar ${formatPrice(total)}`}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Order Summary */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-offwhite p-6 sticky top-24">
+                            <h3 className="font-display text-xl text-dark mb-4">
+                                Resumo do Pedido
+                            </h3>
+
+                            {/* Coupon */}
+                            <div className="mb-6">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Cupom de desconto"
+                                        value={couponCode}
+                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                        disabled={couponApplied}
+                                        className="flex-1 px-3 py-2 text-sm border border-beige bg-cream focus:outline-none focus:border-gold"
+                                    />
+                                    <button
+                                        onClick={applyCoupon}
+                                        disabled={couponApplied || !couponCode}
+                                        className="px-4 py-2 text-sm bg-dark text-cream hover:bg-charcoal transition-colors disabled:opacity-50"
+                                    >
+                                        Aplicar
+                                    </button>
+                                </div>
+                                {couponApplied && (
+                                    <p className="text-green-600 text-xs mt-1">
+                                        ✓ Cupom BEMVINDA10 aplicado!
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Items Summary */}
+                            <div className="space-y-2 mb-4 pb-4 border-b border-beige">
+                                {items.map((item) => (
+                                    <div key={item.product.id} className="flex justify-between text-sm">
+                                        <span className="text-taupe">
+                                            {item.product.name} x{item.quantity}
+                                        </span>
+                                        <span className="text-dark">
+                                            {formatPrice(item.product.price * item.quantity)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Totals */}
+                            <div className="space-y-2 mb-4">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-taupe">Subtotal</span>
+                                    <span className="text-dark">{formatPrice(subtotal)}</span>
+                                </div>
+                                {discount > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-green-600">Desconto</span>
+                                        <span className="text-green-600">-{formatPrice(discount)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-taupe">Frete</span>
+                                    <span className={shipping === 0 ? "text-green-600" : "text-dark"}>
+                                        {selectedShipping
+                                            ? subtotal >= 300 && selectedShipping.price <= 25
+                                                ? "Grátis"
+                                                : formatPrice(selectedShipping.price)
+                                            : shipping === 0
+                                                ? "Grátis"
+                                                : "Calcular"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between text-lg font-medium pt-4 border-t border-beige">
+                                <span className="text-dark">Total</span>
+                                <span className="text-dark">{formatPrice(total)}</span>
+                            </div>
+
+                            <p className="text-taupe text-xs mt-4">
+                                ou 12x de {formatPrice(total / 12)} sem juros
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}

@@ -1,0 +1,226 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+export function Header() {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+    const navigation = [
+        { name: "Novidades", href: "/novidades" },
+        { name: "Brincos", href: "/categoria/brincos" },
+        { name: "Colares", href: "/categoria/colares" },
+        { name: "Anéis", href: "/categoria/aneis" },
+        { name: "Pulseiras", href: "/categoria/pulseiras" },
+        { name: "Coleções", href: "/colecoes" },
+    ];
+
+    return (
+        <header className="sticky top-0 z-50 bg-cream/95 backdrop-blur-sm border-b border-beige">
+            {/* Top Bar - Frete Grátis */}
+            <div className="bg-dark text-cream text-center py-2 text-sm tracking-wide">
+                <p>FRETE GRÁTIS em compras acima de R$ 299 ✦ Parcele em até 12x</p>
+            </div>
+
+            <div className="container">
+                <div className="flex items-center justify-between h-20">
+                    {/* Mobile Menu Button */}
+                    <button
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="lg:hidden p-2 hover:text-gold transition-colors"
+                        aria-label="Menu"
+                    >
+                        <svg
+                            className="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            {isMenuOpen ? (
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            ) : (
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M4 6h16M4 12h16M4 18h16"
+                                />
+                            )}
+                        </svg>
+                    </button>
+
+                    {/* Logo */}
+                    <Link href="/" className="flex-shrink-0">
+                        <h1 className="font-display text-2xl md:text-3xl tracking-[0.2em] text-dark">
+                            WF <span className="text-gold">SEMIJOIAS</span>
+                        </h1>
+                    </Link>
+
+                    {/* Desktop Navigation */}
+                    <nav className="hidden lg:flex items-center gap-8">
+                        {navigation.map((item) => (
+                            <Link
+                                key={item.name}
+                                href={item.href}
+                                className="text-sm tracking-wider uppercase text-dark hover:text-gold transition-colors"
+                            >
+                                {item.name}
+                            </Link>
+                        ))}
+                    </nav>
+
+                    {/* Icons */}
+                    <div className="flex items-center gap-4">
+                        {/* Search */}
+                        <button
+                            onClick={() => setIsSearchOpen(!isSearchOpen)}
+                            className="p-2 hover:text-gold transition-colors"
+                            aria-label="Buscar"
+                        >
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                />
+                            </svg>
+                        </button>
+
+                        {/* Account */}
+                        <Link
+                            href="/conta"
+                            className="p-2 hover:text-gold transition-colors hidden md:block"
+                            aria-label="Minha Conta"
+                        >
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                />
+                            </svg>
+                        </Link>
+
+                        {/* Wishlist */}
+                        <Link
+                            href="/favoritos"
+                            className="p-2 hover:text-gold transition-colors hidden md:block"
+                            aria-label="Favoritos"
+                        >
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                />
+                            </svg>
+                        </Link>
+
+                        {/* Cart */}
+                        <Link
+                            href="/carrinho"
+                            className="p-2 hover:text-gold transition-colors relative"
+                            aria-label="Carrinho"
+                        >
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                                />
+                            </svg>
+                            {/* Cart Count Badge */}
+                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-white text-xs rounded-full flex items-center justify-center">
+                                0
+                            </span>
+                        </Link>
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile Menu */}
+            {isMenuOpen && (
+                <div className="lg:hidden absolute top-full left-0 w-full bg-cream border-b border-beige animate-fadeIn">
+                    <nav className="container py-6 flex flex-col gap-4">
+                        {navigation.map((item) => (
+                            <Link
+                                key={item.name}
+                                href={item.href}
+                                className="text-lg tracking-wider text-dark hover:text-gold transition-colors py-2 border-b border-beige/50"
+                                onClick={() => setIsMenuOpen(false)}
+                            >
+                                {item.name}
+                            </Link>
+                        ))}
+                        <div className="flex gap-4 pt-4">
+                            <Link href="/conta" className="btn btn-outline flex-1">
+                                Entrar
+                            </Link>
+                        </div>
+                    </nav>
+                </div>
+            )}
+
+            {/* Search Modal */}
+            {isSearchOpen && (
+                <div className="absolute top-full left-0 w-full bg-cream border-b border-beige p-4 animate-fadeIn">
+                    <div className="container">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="O que você está buscando?"
+                                className="w-full py-3 px-4 pr-12 border border-beige bg-offwhite rounded-none focus:outline-none focus:border-gold transition-colors"
+                                autoFocus
+                            />
+                            <button className="absolute right-4 top-1/2 -translate-y-1/2 text-taupe hover:text-gold">
+                                <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={1.5}
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </header>
+    );
+}

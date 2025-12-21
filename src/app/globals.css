@@ -1,0 +1,278 @@
+@import "tailwindcss";
+
+/* ============================================
+   WF SEMIJOIAS - DESIGN SYSTEM
+   Paleta de cores terrosas, elegantes e premium
+   ============================================ */
+
+:root {
+  /* Cores Primárias */
+  --wf-gold: #C9A86C;
+  --wf-gold-light: #D4B87A;
+  --wf-gold-dark: #A68B5B;
+  
+  /* Tons Neutros */
+  --wf-cream: #FAF7F2;
+  --wf-beige: #E8E0D5;
+  --wf-nude: #D4C4B5;
+  --wf-taupe: #9C8B7A;
+  --wf-brown: #6B5B4F;
+  --wf-dark: #2D2621;
+  
+  /* Variações */
+  --wf-offwhite: #FDFCFA;
+  --wf-sand: #E5DDD3;
+  --wf-stone: #B8A99A;
+  --wf-charcoal: #3D3632;
+  
+  /* Semânticas */
+  --background: var(--wf-cream);
+  --foreground: var(--wf-dark);
+  --accent: var(--wf-gold);
+  --muted: var(--wf-taupe);
+  
+  /* Tipografia */
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+@theme inline {
+  /* Cores do Tailwind customizadas */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-gold: var(--wf-gold);
+  --color-gold-light: var(--wf-gold-light);
+  --color-gold-dark: var(--wf-gold-dark);
+  --color-cream: var(--wf-cream);
+  --color-beige: var(--wf-beige);
+  --color-nude: var(--wf-nude);
+  --color-taupe: var(--wf-taupe);
+  --color-brown: var(--wf-brown);
+  --color-dark: var(--wf-dark);
+  --color-offwhite: var(--wf-offwhite);
+  --color-sand: var(--wf-sand);
+  --color-stone: var(--wf-stone);
+  --color-charcoal: var(--wf-charcoal);
+  
+  /* Fontes */
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+}
+
+/* ============================================
+   RESET E BASE
+   ============================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   TIPOGRAFIA
+   ============================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+}
+
+h2 {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+h3 {
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+/* ============================================
+   COMPONENTES BASE
+   ============================================ */
+
+/* Botões */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 2rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: var(--wf-gold);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--wf-gold-dark);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--wf-dark);
+  border: 1px solid var(--wf-dark);
+}
+
+.btn-outline:hover {
+  background: var(--wf-dark);
+  color: white;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--wf-dark);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.btn-ghost:hover {
+  color: var(--wf-gold);
+}
+
+/* Links */
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--wf-gold);
+}
+
+/* ============================================
+   UTILITÁRIOS
+   ============================================ */
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.section {
+  padding: 4rem 0;
+}
+
+.text-gold {
+  color: var(--wf-gold);
+}
+
+.bg-cream {
+  background: var(--wf-cream);
+}
+
+.bg-beige {
+  background: var(--wf-beige);
+}
+
+/* ============================================
+   ANIMAÇÕES
+   ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.5s ease forwards;
+}
+
+/* ============================================
+   HOVER EFFECTS PREMIUM
+   ============================================ */
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(45, 38, 33, 0.1);
+}
+
+.hover-scale {
+  transition: transform 0.4s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* ============================================
+   SCROLLBAR CUSTOMIZADA
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--wf-beige);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--wf-taupe);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--wf-brown);
+}
+
+/* ============================================
+   SELECTION
+   ============================================ */
+
+::selection {
+  background: var(--wf-gold);
+  color: white;
+}
