@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export function Footer() {
     const currentYear = new Date().getFullYear();
@@ -87,9 +88,15 @@ export function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {/* Brand */}
                     <div>
-                        <h2 className="font-display text-2xl tracking-[0.2em] mb-4">
-                            WF <span className="text-gold">SEMIJOIAS</span>
-                        </h2>
+                        <Link href="/" className="block mb-4">
+                            <Image
+                                src="/logo-light.png"
+                                alt="WF Semijoias"
+                                width={140}
+                                height={50}
+                                className="h-12 w-auto brightness-0 invert"
+                            />
+                        </Link>
                         <p className="text-stone text-sm leading-relaxed mb-6">
                             Semijoias artesanais feitas à mão com pedras brasileiras premium.
                             Cada peça é única, criada com amor e dedicação.
