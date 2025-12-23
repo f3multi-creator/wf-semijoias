@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.in",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**",
+      },
     ],
     // Formatos modernos para melhor performance mobile
     formats: ["image/avif", "image/webp"],

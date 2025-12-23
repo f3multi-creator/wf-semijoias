@@ -3,12 +3,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { useCart } from "@/store/cart";
 
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isAccountOpen, setIsAccountOpen] = useState(false);
     const { getItemCount, openCart } = useCart();
+    const { data: session, status } = useSession();
 
     const navigation = [
         { name: "Novidades", href: "/novidades" },
@@ -106,26 +109,83 @@ export function Header() {
                             </svg>
                         </button>
 
-                        {/* Account */}
-                        <Link
-                            href="/conta"
-                            className="p-2 hover:text-gold transition-colors hidden md:block"
-                            aria-label="Minha Conta"
-                        >
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={1.5}
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                />
-                            </svg>
-                        </Link>
+                        {/* Account - Dinâmico baseado em login */}
+                        <div className="relative hidden md:block">
+                            {status === "loading" ? (
+                                <div className="p-2 w-5 h-5 animate-pulse bg-beige rounded-full" />
+                            ) : session ? (
+                                <>
+                                    <button
+                                        onClick={() => setIsAccountOpen(!isAccountOpen)}
+                                        className="flex items-center gap-2 p-2 hover:text-gold transition-colors"
+                                        aria-label="Minha Conta"
+                                    >
+                                        {session.user?.image ? (
+                                            <Image
+                                                src={session.user.image}
+                                                alt={session.user.name || ""}
+                                                width={28}
+                                                height={28}
+                                                className="rounded-full"
+                                            />
+                                        ) : (
+                                            <div className="w-7 h-7 bg-gold text-white rounded-full flex items-center justify-center text-sm font-medium">
+                                                {session.user?.name?.[0]?.toUpperCase() || "U"}
+                                            </div>
+                                        )}
+                                    </button>
+                                    {isAccountOpen && (
+                                        <div className="absolute right-0 top-full mt-2 w-48 bg-cream border border-beige shadow-lg z-50">
+                                            <div className="p-3 border-b border-beige">
+                                                <p className="text-sm font-medium text-dark truncate">
+                                                    {session.user?.name}
+                                                </p>
+                                                <p className="text-xs text-taupe truncate">
+                                                    {session.user?.email}
+                                                </p>
+                                            </div>
+                                            <Link
+                                                href="/meus-pedidos"
+                                                className="block px-4 py-2 text-sm text-dark hover:bg-beige hover:text-gold transition-colors"
+                                                onClick={() => setIsAccountOpen(false)}
+                                            >
+                                                Meus Pedidos
+                                            </Link>
+                                            <button
+                                                onClick={() => {
+                                                    setIsAccountOpen(false);
+                                                    signOut();
+                                                }}
+                                                className="w-full text-left px-4 py-2 text-sm text-dark hover:bg-beige hover:text-red-500 transition-colors"
+                                            >
+                                                Sair
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <Link
+                                    href="/login"
+                                    className="flex items-center gap-2 px-3 py-2 text-sm text-dark hover:text-gold transition-colors"
+                                    aria-label="Entrar"
+                                >
+                                    <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={1.5}
+                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                        />
+                                    </svg>
+                                    <span className="hidden lg:inline">Entrar</span>
+                                </Link>
+                            )}
+                        </div>
 
                         {/* Wishlist */}
                         <Link
@@ -193,9 +253,25 @@ export function Header() {
                             </Link>
                         ))}
                         <div className="flex gap-4 pt-4">
-                            <Link href="/conta" className="btn btn-outline flex-1">
-                                Entrar
-                            </Link>
+                            {session ? (
+                                <button
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        signOut();
+                                    }}
+                                    className="btn btn-outline flex-1"
+                                >
+                                    Sair ({session.user?.name?.split(" ")[0]})
+                                </button>
+                            ) : (
+                                <Link
+                                    href="/login"
+                                    className="btn btn-outline flex-1"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Entrar
+                                </Link>
+                            )}
                         </div>
                     </nav>
                 </div>
