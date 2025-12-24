@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-// Cliente Supabase com service role para operações admin
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy-load Supabase client para evitar erro no build
+let supabaseAdminInstance: SupabaseClient | null = null;
+function getSupabaseAdmin(): SupabaseClient | null {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return null;
+    }
+    if (!supabaseAdminInstance) {
+        supabaseAdminInstance = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+    }
+    return supabaseAdminInstance;
+}
 
 export async function GET() {
+    const supabaseAdmin = getSupabaseAdmin();
+    if (!supabaseAdmin) {
+        return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
+    }
+
     try {
         const { data, error } = await supabaseAdmin
             .from("shipping_settings")
@@ -44,6 +58,11 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+    const supabaseAdmin = getSupabaseAdmin();
+    if (!supabaseAdmin) {
+        return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
+    }
+
     try {
         const body = await request.json();
 

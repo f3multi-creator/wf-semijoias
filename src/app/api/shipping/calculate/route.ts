@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 // API do Melhor Envio para cálculo de frete
 // Documentação: https://docs.melhorenvio.com.br/
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Lazy-load Supabase client para evitar erro no build
+let supabaseInstance: SupabaseClient | null = null;
+function getSupabase(): SupabaseClient | null {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        return null;
+    }
+    if (!supabaseInstance) {
+        supabaseInstance = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+    }
+    return supabaseInstance;
+}
 
 interface ShippingItem {
     id: string;
@@ -37,6 +47,11 @@ interface ShippingSettings {
 
 // Buscar configurações de frete do banco
 async function getShippingSettings(): Promise<ShippingSettings> {
+    const supabase = getSupabase();
+    if (!supabase) {
+        return getDefaultSettings();
+    }
+
     try {
         const { data } = await supabase
             .from("shipping_settings")
@@ -108,7 +123,7 @@ export async function POST(request: NextRequest) {
         }];
 
         const payload: ShippingRequest = {
-            from: { postal_code: cepOrigem.replace(/\D/g, "") },
+            from: { postal_code: settings.cep_origem.replace(/\D/g, "") },
             to: { postal_code: cep.replace(/\D/g, "") },
             products,
         };
@@ -126,7 +141,7 @@ export async function POST(request: NextRequest) {
 
         if (!response.ok) {
             console.error("Erro Melhor Envio:", await response.text());
-            return getSimulatedShipping(cep);
+            return getSimulatedShipping(cep, freteGratis, settings.frete_gratis_valor_minimo);
         }
 
         const data = await response.json();
