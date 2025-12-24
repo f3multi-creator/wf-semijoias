@@ -9,9 +9,8 @@ export default function AdminLayout({
         { name: "Dashboard", href: "/admin", icon: "📊" },
         { name: "Produtos", href: "/admin/produtos", icon: "💎" },
         { name: "Pedidos", href: "/admin/pedidos", icon: "📦" },
-        { name: "Clientes", href: "/admin/clientes", icon: "👥" },
         { name: "Cupons", href: "/admin/cupons", icon: "🎟️" },
-        { name: "Configurações", href: "/admin/config", icon: "⚙️" },
+        { name: "Frete", href: "/admin/configuracoes", icon: "🚚" },
     ];
 
     return (

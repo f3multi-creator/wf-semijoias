@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 // API do Melhor Envio para cálculo de frete
 // Documentação: https://docs.melhorenvio.com.br/
 
-const MELHOR_ENVIO_URL = process.env.MELHOR_ENVIO_SANDBOX === "true"
-    ? "https://sandbox.melhorenvio.com.br/api/v2"
-    : "https://melhorenvio.com.br/api/v2";
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface ShippingItem {
     id: string;
@@ -22,22 +24,70 @@ interface ShippingRequest {
     products: ShippingItem[];
 }
 
+interface ShippingSettings {
+    cep_origem: string;
+    frete_gratis_ativo: boolean;
+    frete_gratis_valor_minimo: number;
+    peso_padrao_gramas: number;
+    largura_cm: number;
+    altura_cm: number;
+    comprimento_cm: number;
+    sandbox_ativo: boolean;
+}
+
+// Buscar configurações de frete do banco
+async function getShippingSettings(): Promise<ShippingSettings> {
+    try {
+        const { data } = await supabase
+            .from("shipping_settings")
+            .select("*")
+            .limit(1)
+            .single();
+
+        return data || getDefaultSettings();
+    } catch {
+        return getDefaultSettings();
+    }
+}
+
+function getDefaultSettings(): ShippingSettings {
+    return {
+        cep_origem: process.env.MELHOR_ENVIO_CEP_ORIGEM || "01310100",
+        frete_gratis_ativo: true,
+        frete_gratis_valor_minimo: 299,
+        peso_padrao_gramas: 100,
+        largura_cm: 10,
+        altura_cm: 5,
+        comprimento_cm: 10,
+        sandbox_ativo: process.env.MELHOR_ENVIO_SANDBOX === "true",
+    };
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { cep, items } = body;
+        const { cep, items, subtotal } = body;
 
         if (!cep) {
             return NextResponse.json({ error: "CEP é obrigatório" }, { status: 400 });
         }
 
-        // CEP de origem (seu armazém/loja)
-        const cepOrigem = process.env.MELHOR_ENVIO_CEP_ORIGEM || "01310100";
+        // Buscar configurações do banco
+        const settings = await getShippingSettings();
+
+        // Verificar frete grátis
+        const freteGratis = settings.frete_gratis_ativo &&
+            subtotal >= settings.frete_gratis_valor_minimo;
 
         // Se não tiver token do Melhor Envio, retorna valores simulados
         if (!process.env.MELHOR_ENVIO_TOKEN) {
-            return getSimulatedShipping(cep);
+            return getSimulatedShipping(cep, freteGratis, settings.frete_gratis_valor_minimo);
         }
+
+        // URL baseada em sandbox ou produção
+        const MELHOR_ENVIO_URL = settings.sandbox_ativo
+            ? "https://sandbox.melhorenvio.com.br/api/v2"
+            : "https://melhorenvio.com.br/api/v2";
 
         // Preparar produtos para cotação
         // Valores padrão para semijoias (pequenas e leves)
@@ -109,7 +159,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Frete simulado quando não tem token do Melhor Envio
-function getSimulatedShipping(cep: string) {
+function getSimulatedShipping(cep: string, freteGratis: boolean, valorMinimo: number) {
     const cepNum = parseInt(cep.replace(/\D/g, ""));
 
     // Determinar região pelo CEP (simplificado)
@@ -134,32 +184,57 @@ function getSimulatedShipping(cep: string) {
 
     const regionPrices = prices[region];
 
+    // Se tem frete grátis, adiciona opção de frete grátis
+    const options = [];
+
+    if (freteGratis) {
+        options.push({
+            id: "frete-gratis",
+            name: "Frete Grátis",
+            company: "Correios (PAC)",
+            price: 0,
+            originalPrice: regionPrices.pac,
+            delivery_time: regionPrices.days + 5,
+            delivery_range: {
+                min: regionPrices.days + 3,
+                max: regionPrices.days + 7,
+            },
+            freeShipping: true,
+        });
+    }
+
+    options.push(
+        {
+            id: "sedex",
+            name: "SEDEX",
+            company: "Correios",
+            price: regionPrices.sedex,
+            delivery_time: regionPrices.days,
+            delivery_range: {
+                min: regionPrices.days,
+                max: regionPrices.days + 2,
+            },
+        },
+        {
+            id: "pac",
+            name: "PAC",
+            company: "Correios",
+            price: freteGratis ? 0 : regionPrices.pac,
+            originalPrice: freteGratis ? regionPrices.pac : undefined,
+            delivery_time: regionPrices.days + 5,
+            delivery_range: {
+                min: regionPrices.days + 3,
+                max: regionPrices.days + 7,
+            },
+            freeShipping: freteGratis,
+        }
+    );
+
     return NextResponse.json({
         success: true,
         simulated: true,
-        options: [
-            {
-                id: "sedex",
-                name: "SEDEX",
-                company: "Correios",
-                price: regionPrices.sedex,
-                delivery_time: regionPrices.days,
-                delivery_range: {
-                    min: regionPrices.days,
-                    max: regionPrices.days + 2,
-                },
-            },
-            {
-                id: "pac",
-                name: "PAC",
-                company: "Correios",
-                price: regionPrices.pac,
-                delivery_time: regionPrices.days + 5,
-                delivery_range: {
-                    min: regionPrices.days + 3,
-                    max: regionPrices.days + 7,
-                },
-            },
-        ],
+        freteGratisDisponivel: freteGratis,
+        freteGratisValorMinimo: valorMinimo,
+        options: freteGratis ? options.filter(o => o.id !== "sedex" || !freteGratis) : options,
     });
 }

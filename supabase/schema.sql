@@ -277,3 +277,36 @@ FROM products WHERE slug = 'produto-teste';
 -- No Supabase Dashboard > Storage > Create bucket:
 -- Nome: products
 -- Public: Yes
+
+-- =====================================================
+-- 11. CONFIGURAÇÕES DE FRETE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS shipping_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cep_origem VARCHAR(9) DEFAULT '01310100',
+  frete_gratis_ativo BOOLEAN DEFAULT true,
+  frete_gratis_valor_minimo DECIMAL(10,2) DEFAULT 299.00,
+  peso_padrao_gramas INTEGER DEFAULT 100,
+  largura_cm INTEGER DEFAULT 10,
+  altura_cm INTEGER DEFAULT 5,
+  comprimento_cm INTEGER DEFAULT 10,
+  transportadoras_ativas TEXT[] DEFAULT ARRAY['correios', 'jadlog'],
+  sandbox_ativo BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Inserir configuração padrão
+INSERT INTO shipping_settings (id) VALUES (gen_random_uuid());
+
+-- RLS para shipping_settings
+ALTER TABLE shipping_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Leitura pública config frete" ON shipping_settings FOR SELECT USING (true);
+CREATE POLICY "Admin config frete" ON shipping_settings FOR ALL USING (auth.role() = 'service_role');
+
+-- Trigger para updated_at
+CREATE TRIGGER shipping_settings_updated_at
+  BEFORE UPDATE ON shipping_settings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
