@@ -26,6 +26,9 @@ interface ShippingSettings {
     altura_cm: number;
     comprimento_cm: number;
     sandbox_ativo: boolean;
+    transportadoras_ativas: string[];
+    retirada_fabrica_ativo: boolean;
+    retirada_fabrica_endereco?: string;
 }
 
 // Buscar configurações de frete do banco
@@ -57,7 +60,10 @@ function getDefaultSettings(): ShippingSettings {
         largura_cm: 10,
         altura_cm: 5,
         comprimento_cm: 10,
-        sandbox_ativo: false, // Default: produção
+        sandbox_ativo: false,
+        transportadoras_ativas: ["correios", "jadlog"],
+        retirada_fabrica_ativo: true,
+        retirada_fabrica_endereco: "Colatina, ES",
     };
 }
 
@@ -118,9 +124,34 @@ export async function POST(request: NextRequest) {
             insuranceValue: subtotal || 100,
         });
 
+        // Mapa de transportadoras para filtro
+        const transportadoraMap: Record<string, string[]> = {
+            "correios": ["correios", "pac", "sedex"],
+            "jadlog": ["jadlog"],
+            "loggi": ["loggi"],
+            "azul": ["azul"],
+            "latam": ["latam"],
+            "jet": ["jet"],
+        };
+
+        // Filtrar transportadoras baseado nas ativas
+        const transportadorasAtivas = settings.transportadoras_ativas || ["correios", "jadlog"];
+
+        const isTransportadoraAtiva = (companyName: string, serviceName: string) => {
+            const name = (companyName + " " + serviceName).toLowerCase();
+            return transportadorasAtivas.some(t => {
+                const keywords = transportadoraMap[t] || [t];
+                return keywords.some(k => name.includes(k));
+            });
+        };
+
         // Processar resultado
-        const options = (Array.isArray(result) ? result : [result])
+        let options = (Array.isArray(result) ? result : [result])
             .filter((option: any) => option.price && !option.error)
+            .filter((option: any) => isTransportadoraAtiva(
+                option.company?.name || "",
+                option.name || ""
+            ))
             .map((option: any) => ({
                 id: option.id || option.Id,
                 name: option.name,
@@ -152,11 +183,27 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Adicionar opção "Retirar na Fábrica" se ativo
+        if (settings.retirada_fabrica_ativo) {
+            options.push({
+                id: "retirada-fabrica",
+                name: "Retirar na Fábrica",
+                company: settings.retirada_fabrica_endereco || "Colatina, ES",
+                price: 0,
+                originalPrice: 0,
+                delivery_time: 0,
+                delivery_range: null,
+                freeShipping: true,
+                isPickup: true,
+            });
+        }
+
         return NextResponse.json({
             success: true,
             simulated: false,
             freteGratisDisponivel: freteGratis,
             freteGratisValorMinimo: settings.frete_gratis_valor_minimo,
+            retiradaFabricaAtivo: settings.retirada_fabrica_ativo,
             options,
         });
 

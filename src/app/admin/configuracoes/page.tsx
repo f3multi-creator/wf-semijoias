@@ -14,6 +14,8 @@ interface ShippingSettings {
     comprimento_cm: number;
     transportadoras_ativas: string[];
     sandbox_ativo: boolean;
+    retirada_fabrica_ativo: boolean;
+    retirada_fabrica_endereco: string;
 }
 
 const transportadorasDisponiveis = [
@@ -257,6 +259,36 @@ export default function ConfiguracoesPage() {
                     </div>
                 </div>
 
+                {/* Retirada na Fábrica */}
+                <div className="bg-offwhite p-6 border border-beige">
+                    <h2 className="font-display text-lg text-dark mb-4">🏭 Retirar na Fábrica</h2>
+
+                    <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={settings?.retirada_fabrica_ativo || false}
+                            onChange={(e) => setSettings(prev => prev ? { ...prev, retirada_fabrica_ativo: e.target.checked } : prev)}
+                            className="w-5 h-5 accent-gold"
+                        />
+                        <span className="text-dark">Permitir que clientes retirem na fábrica (frete grátis)</span>
+                    </label>
+
+                    {settings?.retirada_fabrica_ativo && (
+                        <div>
+                            <label className="block text-sm text-taupe mb-1">Endereço/Descrição</label>
+                            <input
+                                type="text"
+                                value={settings?.retirada_fabrica_endereco || ""}
+                                onChange={(e) => setSettings(prev => prev ? { ...prev, retirada_fabrica_endereco: e.target.value } : prev)}
+                                placeholder="Ex: Rua Principal, 123 - Colatina, ES"
+                                className="w-full px-4 py-2 border border-beige bg-cream focus:outline-none focus:border-gold"
+                            />
+                            <p className="text-xs text-taupe mt-2">
+                                Este endereço será exibido para o cliente na opção de retirada.
+                            </p>
+                        </div>
+                    )}
+                </div>
                 {/* Ambiente */}
                 <div className="bg-offwhite p-6 border border-beige">
                     <h2 className="font-display text-lg text-dark mb-4">⚙️ Ambiente</h2>
