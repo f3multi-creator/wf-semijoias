@@ -20,20 +20,52 @@ export default function CheckoutPage() {
     const discount = couponApplied ? subtotal * 0.1 : 0; // 10% de desconto exemplo
     const total = subtotal + shipping - discount;
 
-    // Simula cálculo de frete
+    // Calcular frete usando a API real do Melhor Envio
     const calculateShipping = async () => {
         if (shippingCep.length < 8) return;
 
         setIsLoading(true);
-        // Simula chamada à API do Melhor Envio
-        setTimeout(() => {
+        try {
+            const response = await fetch("/api/shipping/calculate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    cep: shippingCep,
+                    items: items.map((item) => ({
+                        id: item.product.id,
+                        quantity: item.quantity,
+                        price: item.product.price,
+                    })),
+                    subtotal: subtotal,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.options) {
+                setShippingOptions(data.options);
+                // Seleciona o mais barato por padrão
+                if (data.options.length > 0 && !selectedShipping) {
+                    setSelectedShipping(data.options[0]);
+                }
+            } else {
+                console.error("Erro ao calcular frete:", data.error);
+                // Fallback para valores simulados em caso de erro
+                setShippingOptions([
+                    { id: "pac", name: "PAC", company: "Correios", price: 19.90, delivery_time: 7 },
+                    { id: "sedex", name: "SEDEX", company: "Correios", price: 34.90, delivery_time: 3 },
+                ]);
+            }
+        } catch (error) {
+            console.error("Erro ao calcular frete:", error);
+            // Fallback para valores simulados em caso de erro
             setShippingOptions([
-                { id: 1, name: "PAC", company: "Correios", price: 19.90, delivery_time: 7 },
-                { id: 2, name: "SEDEX", company: "Correios", price: 34.90, delivery_time: 3 },
-                { id: 3, name: "Jadlog", company: "Jadlog", price: 24.90, delivery_time: 5 },
+                { id: "pac", name: "PAC", company: "Correios", price: 19.90, delivery_time: 7 },
+                { id: "sedex", name: "SEDEX", company: "Correios", price: 34.90, delivery_time: 3 },
             ]);
+        } finally {
             setIsLoading(false);
-        }, 1000);
+        }
     };
 
     // Simula aplicação de cupom
@@ -118,8 +150,8 @@ export default function CheckoutPage() {
                             <button
                                 onClick={() => setStep(s as any)}
                                 className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${step === s
-                                        ? "bg-gold text-white"
-                                        : "bg-beige text-taupe hover:bg-sand"
+                                    ? "bg-gold text-white"
+                                    : "bg-beige text-taupe hover:bg-sand"
                                     }`}
                             >
                                 {index + 1}
@@ -245,8 +277,8 @@ export default function CheckoutPage() {
                                             <label
                                                 key={option.id}
                                                 className={`flex items-center justify-between p-4 border cursor-pointer transition-colors ${selectedShipping?.id === option.id
-                                                        ? "border-gold bg-cream"
-                                                        : "border-beige hover:border-sand"
+                                                    ? "border-gold bg-cream"
+                                                    : "border-beige hover:border-sand"
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">
