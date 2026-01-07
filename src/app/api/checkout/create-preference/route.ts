@@ -76,9 +76,14 @@ export async function POST(request: NextRequest) {
         payer: customerEmail ? {
           email: customerEmail,
         } : undefined,
+        // Configuração explícita de métodos de pagamento
         payment_methods: {
           installments: 12, // Até 12x
+          // NÃO excluir nenhum tipo de pagamento - habilita todos
           excluded_payment_types: [],
+          excluded_payment_methods: [],
+          // Parcelas sem juros (opcional - o vendedor absorve)
+          default_installments: 1,
         },
         back_urls: {
           success: `${process.env.NEXT_PUBLIC_SITE_URL}/pedido/sucesso`,
@@ -89,6 +94,9 @@ export async function POST(request: NextRequest) {
         notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
         external_reference: externalReference,
         statement_descriptor: 'WF SEMIJOIAS',
+        // Expira em 24 horas (para boleto e PIX)
+        expires: true,
+        expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       },
     });
 
