@@ -194,7 +194,6 @@ export async function POST(request: NextRequest) {
                 delivery_time: 0,
                 delivery_range: null,
                 freeShipping: true,
-                isPickup: true,
             });
         }
 
