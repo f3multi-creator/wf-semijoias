@@ -172,6 +172,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             options,
+            // Debug: resposta raw do Melhor Envio
+            _debug_raw: data,
+            _debug_totalOptions: data.length,
+            _debug_filteredCount: options.length,
         });
 
     } catch (error) {
