@@ -39,7 +39,6 @@ interface CartStore {
 }
 
 const FREE_SHIPPING_THRESHOLD = 300; // Frete grátis acima de R$ 300
-const DEFAULT_SHIPPING = 25; // Valor padrão do frete (será substituído pelo Melhor Envio)
 
 export const useCart = create<CartStore>()(
     persist(
@@ -128,15 +127,17 @@ export const useCart = create<CartStore>()(
                 return get().items.reduce((count, item) => count + item.quantity, 0);
             },
 
+            // Retorna 0 - frete real é calculado no checkout
             getShipping: (subtotal) => {
-                if (subtotal >= FREE_SHIPPING_THRESHOLD) return 0;
-                return DEFAULT_SHIPPING;
+                // Não exibe estimativa de frete no carrinho
+                // Frete real é calculado na página de checkout
+                return 0;
             },
 
             getTotal: () => {
                 const subtotal = get().getSubtotal();
-                const shipping = get().getShipping(subtotal);
-                return subtotal + shipping;
+                // Não adiciona frete estimado - será calculado no checkout
+                return subtotal;
             },
         }),
         {

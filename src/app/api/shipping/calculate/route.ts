@@ -45,7 +45,16 @@ async function getShippingSettings(): Promise<ShippingSettings> {
             .limit(1)
             .single();
 
-        return data || getDefaultSettings();
+        // Mescla dados do banco com defaults (para colunas que podem não existir)
+        const defaults = getDefaultSettings();
+        return {
+            ...defaults,
+            ...data,
+            // Garante que estas propriedades usem default se não existirem no banco
+            retirada_fabrica_ativo: data?.retirada_fabrica_ativo ?? defaults.retirada_fabrica_ativo,
+            retirada_fabrica_endereco: data?.retirada_fabrica_endereco ?? defaults.retirada_fabrica_endereco,
+            transportadoras_ativas: data?.transportadoras_ativas ?? defaults.transportadoras_ativas,
+        };
     } catch {
         return getDefaultSettings();
     }
