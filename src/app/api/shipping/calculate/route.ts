@@ -140,8 +140,18 @@ export async function POST(request: NextRequest) {
         });
 
         if (!response.ok) {
-            console.error("Erro Melhor Envio:", await response.text());
-            return getSimulatedShipping(cep, freteGratis, settings.frete_gratis_valor_minimo);
+            const errorText = await response.text();
+            console.error("Erro Melhor Envio:", errorText);
+            // Temporariamente retorna erro para debug
+            return NextResponse.json({
+                success: false,
+                error: "Melhor Envio API error",
+                status: response.status,
+                errorDetail: errorText,
+                url: `${MELHOR_ENVIO_URL}/me/shipment/calculate`,
+                cepOrigem: settings.cep_origem,
+                cepDestino: cep,
+            }, { status: 200 }); // Status 200 para ver no frontend
         }
 
         const data = await response.json();
