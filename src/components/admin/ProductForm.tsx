@@ -49,37 +49,38 @@ export function ProductForm({ productId }: ProductFormProps) {
         loadCategories();
     }, []);
 
-    // Carregar produto para edição
+    // Carregar produto para edição (via API)
     useEffect(() => {
         if (!productId) return;
 
         async function loadProduct() {
             setLoading(true);
-            const { data: product } = await supabase
-                .from("products")
-                .select("*, images:product_images(*)")
-                .eq("id", productId)
-                .single();
+            try {
+                const response = await fetch(`/api/admin/products?id=${productId}`);
+                const product = await response.json();
 
-            if (product) {
-                setForm({
-                    name: product.name,
-                    slug: product.slug,
-                    description: product.description || "",
-                    price: product.price.toString(),
-                    compare_price: product.compare_price?.toString() || "",
-                    sku: product.sku || "",
-                    stock_quantity: product.stock_quantity.toString(),
-                    category_id: product.category_id || "",
-                    is_active: product.is_active,
-                    is_featured: product.is_featured,
-                    is_new: product.is_new,
-                });
-                setImages(product.images?.map((img: any) => ({
-                    id: img.id,
-                    url: img.url,
-                    is_primary: img.is_primary,
-                })) || []);
+                if (product && !product.error) {
+                    setForm({
+                        name: product.name,
+                        slug: product.slug,
+                        description: product.description || "",
+                        price: product.price.toString(),
+                        compare_price: product.compare_price?.toString() || "",
+                        sku: product.sku || "",
+                        stock_quantity: product.stock_quantity.toString(),
+                        category_id: product.category_id || "",
+                        is_active: product.is_active,
+                        is_featured: product.is_featured,
+                        is_new: product.is_new,
+                    });
+                    setImages(product.images?.map((img: any) => ({
+                        id: img.id,
+                        url: img.url,
+                        is_primary: img.is_primary,
+                    })) || []);
+                }
+            } catch (error) {
+                console.error("Erro ao carregar produto:", error);
             }
             setLoading(false);
         }
@@ -192,7 +193,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Salvar produto
+    // Salvar produto (via API)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -202,6 +203,7 @@ export function ProductForm({ productId }: ProductFormProps) {
 
         try {
             const productData = {
+                id: productId, // Incluir ID para update
                 name: form.name.trim(),
                 slug: form.slug.trim(),
                 description: form.description.trim() || null,
@@ -213,58 +215,29 @@ export function ProductForm({ productId }: ProductFormProps) {
                 is_active: form.is_active,
                 is_featured: form.is_featured,
                 is_new: form.is_new,
+                images: images, // Incluir imagens no payload
             };
 
-            let savedProductId = productId;
+            const method = productId ? "PUT" : "POST";
+            const response = await fetch("/api/admin/products", {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(productData),
+            });
 
-            if (productId) {
-                // Atualizar produto existente
-                const { error } = await supabase
-                    .from("products")
-                    .update(productData)
-                    .eq("id", productId);
+            const result = await response.json();
 
-                if (error) throw error;
-            } else {
-                // Criar novo produto
-                const { data, error } = await supabase
-                    .from("products")
-                    .insert(productData)
-                    .select()
-                    .single();
-
-                if (error) throw error;
-                savedProductId = data.id;
-            }
-
-            // Salvar imagens
-            if (savedProductId && images.length > 0) {
-                // Deletar imagens antigas se for edição
-                if (productId) {
-                    await supabase
-                        .from("product_images")
-                        .delete()
-                        .eq("product_id", productId);
-                }
-
-                // Inserir novas imagens
-                const imagesToInsert = images.map((img, index) => ({
-                    product_id: savedProductId,
-                    url: img.url,
-                    is_primary: img.is_primary,
-                    position: index,
-                }));
-
-                await supabase.from("product_images").insert(imagesToInsert);
+            if (!response.ok) {
+                throw new Error(result.error || "Erro ao salvar produto");
             }
 
             // Redirecionar para lista
             router.push("/admin/produtos");
             router.refresh();
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Erro ao salvar:", error);
-            alert("Erro ao salvar produto. Verifique o console.");
+            alert(`Erro ao salvar produto: ${error.message}`);
         } finally {
             setSaving(false);
         }
