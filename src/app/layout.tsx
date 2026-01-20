@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Outfit } from "next/font/google";
+import { Cormorant_Garamond, Google_Sans_Flex } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -13,10 +13,9 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
-// Outfit é a alternativa mais próxima do Google Sans disponível no Google Fonts
-const outfit = Outfit({
+// Google Sans Flex - fonte oficial do Google (open source)
+const googleSans = Google_Sans_Flex({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-body",
   display: "swap",
 });
@@ -72,7 +71,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${cormorant.variable} ${outfit.variable}`}>
+    <html lang="pt-BR" className={`${cormorant.variable} ${googleSans.variable}`}>
       <body className="min-h-screen flex flex-col">
         <AuthProvider>
           <Header />

@@ -1,87 +1,67 @@
+import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 
-// Revalidar a cada 30 segundos
-export const revalidate = 30;
+// Revalidar a cada requisição
+export const revalidate = 0;
 
-async function getDashboardStats() {
-    // Total de vendas (pedidos aprovados)
-    const { data: ordersApproved } = await supabase
-        .from('orders')
-        .select('total')
-        .eq('payment_status', 'approved');
+function getSupabaseAdmin() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+    if (!url || !key) return null;
+    return createClient(url, key);
+}
 
-    const totalSales = ordersApproved?.reduce((sum, o) => sum + o.total, 0) || 0;
+async function getDashboardData() {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return null;
 
-    // Pedidos de hoje
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Buscar dados em paralelo
+    const [ordersResult, productsResult, categoriesResult] = await Promise.all([
+        supabase.from("orders").select("id, total, status, created_at"),
+        supabase.from("products").select("id, stock_quantity, is_active"),
+        supabase.from("categories").select("id"),
+    ]);
 
-    const { count: ordersToday } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', today.toISOString());
+    const orders = ordersResult.data || [];
+    const products = productsResult.data || [];
 
-    // Pedidos pendentes (aguardando envio)
-    const { count: pendingOrders } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'confirmed')
-        .neq('status', 'shipped');
+    // Calcular métricas
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const averageTicket = orders.length > 0 ? totalRevenue / orders.length : 0;
+
+    // Pedidos por status
+    const ordersByStatus = orders.reduce((acc, o) => {
+        acc[o.status] = (acc[o.status] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    // Vendas dos últimos 7 dias
+    const last7Days = new Date();
+    last7Days.setDate(last7Days.getDate() - 7);
+    const recentOrders = orders.filter(o => new Date(o.created_at) >= last7Days);
+    const recentRevenue = recentOrders.reduce((sum, o) => sum + (o.total || 0), 0);
 
     // Produtos com estoque baixo
-    const { count: lowStockProducts } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true)
-        .lte('stock_quantity', 5);
+    const lowStockProducts = products.filter(p => p.stock_quantity <= 5 && p.stock_quantity > 0);
+    const outOfStockProducts = products.filter(p => p.stock_quantity === 0);
+    const activeProducts = products.filter(p => p.is_active);
 
     return {
-        totalSales,
-        ordersToday: ordersToday || 0,
-        pendingOrders: pendingOrders || 0,
-        lowStockProducts: lowStockProducts || 0,
+        totalOrders: orders.length,
+        totalRevenue,
+        averageTicket,
+        recentOrders: recentOrders.length,
+        recentRevenue,
+        ordersByStatus,
+        totalProducts: products.length,
+        activeProducts: activeProducts.length,
+        lowStockProducts: lowStockProducts.length,
+        outOfStockProducts: outOfStockProducts.length,
     };
 }
 
-async function getRecentOrders() {
-    const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-    if (error) {
-        console.error('Erro ao buscar pedidos:', error);
-        return [];
-    }
-
-    return data || [];
-}
-
-const statusColors: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800",
-    confirmed: "bg-blue-100 text-blue-800",
-    processing: "bg-purple-100 text-purple-800",
-    shipped: "bg-indigo-100 text-indigo-800",
-    delivered: "bg-green-100 text-green-800",
-    cancelled: "bg-red-100 text-red-800",
-};
-
-const statusLabels: Record<string, string> = {
-    pending: "Pendente",
-    confirmed: "Confirmado",
-    processing: "Processando",
-    shipped: "Enviado",
-    delivered: "Entregue",
-    cancelled: "Cancelado",
-};
-
 export default async function AdminDashboard() {
-    const [stats, recentOrders] = await Promise.all([
-        getDashboardStats(),
-        getRecentOrders(),
-    ]);
+    const data = await getDashboardData();
 
     const formatPrice = (value: number) => {
         return value.toLocaleString("pt-BR", {
@@ -90,97 +70,117 @@ export default async function AdminDashboard() {
         });
     };
 
-    const formatDate = (date: string) => {
-        const d = new Date(date);
-        const now = new Date();
-        const diff = now.getTime() - d.getTime();
+    if (!data) {
+        return (
+            <div className="text-center py-12 text-gray-500">
+                Erro ao carregar dados do dashboard
+            </div>
+        );
+    }
 
-        if (diff < 86400000) { // menos de 24h
-            return `Hoje, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-        } else if (diff < 172800000) { // menos de 48h
-            return `Ontem, ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-        }
-        return d.toLocaleDateString('pt-BR');
+    const statusLabels: Record<string, string> = {
+        pending: "Pendentes",
+        paid: "Pagos",
+        processing: "Processando",
+        shipped: "Enviados",
+        delivered: "Entregues",
+        cancelled: "Cancelados",
     };
 
     return (
         <div>
-            <h1 className="text-2xl font-display text-dark mb-8">Dashboard</h1>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-8">Dashboard</h1>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-cream p-6 border border-beige">
-                    <p className="text-taupe text-sm mb-1">Vendas (Aprovadas)</p>
-                    <p className="text-2xl font-display text-dark">{formatPrice(stats.totalSales)}</p>
+            {/* Cards principais */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <p className="text-sm text-gray-500 mb-1">Receita Total</p>
+                    <p className="text-2xl font-semibold text-gray-900">{formatPrice(data.totalRevenue)}</p>
+                    <p className="text-xs text-gray-400 mt-1">{data.totalOrders} pedidos</p>
                 </div>
-                <div className="bg-cream p-6 border border-beige">
-                    <p className="text-taupe text-sm mb-1">Pedidos Hoje</p>
-                    <p className="text-2xl font-display text-dark">{stats.ordersToday}</p>
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <p className="text-sm text-gray-500 mb-1">Últimos 7 dias</p>
+                    <p className="text-2xl font-semibold text-green-600">{formatPrice(data.recentRevenue)}</p>
+                    <p className="text-xs text-gray-400 mt-1">{data.recentOrders} pedidos</p>
                 </div>
-                <div className="bg-cream p-6 border border-beige">
-                    <p className="text-taupe text-sm mb-1">Aguardando Envio</p>
-                    <p className="text-2xl font-display text-gold">{stats.pendingOrders}</p>
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <p className="text-sm text-gray-500 mb-1">Ticket Médio</p>
+                    <p className="text-2xl font-semibold text-gray-900">{formatPrice(data.averageTicket)}</p>
                 </div>
-                <div className="bg-cream p-6 border border-beige">
-                    <p className="text-taupe text-sm mb-1">Estoque Baixo</p>
-                    <p className={`text-2xl font-display ${stats.lowStockProducts > 0 ? 'text-red-600' : 'text-dark'}`}>
-                        {stats.lowStockProducts}
-                    </p>
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <p className="text-sm text-gray-500 mb-1">Produtos Ativos</p>
+                    <p className="text-2xl font-semibold text-gray-900">{data.activeProducts}</p>
+                    <p className="text-xs text-gray-400 mt-1">de {data.totalProducts} total</p>
                 </div>
             </div>
 
-            {/* Recent Orders */}
-            <div className="bg-cream border border-beige">
-                <div className="flex items-center justify-between p-6 border-b border-beige">
-                    <h2 className="font-display text-xl text-dark">Pedidos Recentes</h2>
-                    <Link href="/admin/pedidos" className="text-gold hover:underline text-sm">
-                        Ver todos →
+            <div className="grid lg:grid-cols-2 gap-6">
+                {/* Pedidos por status */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <h2 className="text-lg font-medium text-gray-900 mb-4">Pedidos por Status</h2>
+                    <div className="space-y-3">
+                        {Object.entries(data.ordersByStatus).map(([status, count]) => (
+                            <div key={status} className="flex justify-between items-center">
+                                <span className="text-gray-600">{statusLabels[status] || status}</span>
+                                <span className="font-medium text-gray-900">{count as number}</span>
+                            </div>
+                        ))}
+                        {Object.keys(data.ordersByStatus).length === 0 && (
+                            <p className="text-gray-400 text-sm">Nenhum pedido ainda</p>
+                        )}
+                    </div>
+                    <Link
+                        href="/admin/pedidos"
+                        className="block text-center mt-4 text-amber-600 hover:text-amber-700 text-sm font-medium"
+                    >
+                        Ver todos os pedidos →
                     </Link>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-beige/50">
-                            <tr>
-                                <th className="text-left px-6 py-3 text-xs text-taupe uppercase tracking-wider">Pedido</th>
-                                <th className="text-left px-6 py-3 text-xs text-taupe uppercase tracking-wider">Cliente</th>
-                                <th className="text-left px-6 py-3 text-xs text-taupe uppercase tracking-wider">Total</th>
-                                <th className="text-left px-6 py-3 text-xs text-taupe uppercase tracking-wider">Status</th>
-                                <th className="text-left px-6 py-3 text-xs text-taupe uppercase tracking-wider">Data</th>
-                                <th className="text-left px-6 py-3 text-xs text-taupe uppercase tracking-wider">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-beige">
-                            {recentOrders.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-taupe">
-                                        Nenhum pedido ainda. Após o primeiro pedido, ele aparecerá aqui.
-                                    </td>
-                                </tr>
-                            ) : (
-                                recentOrders.map((order: any) => (
-                                    <tr key={order.id} className="hover:bg-beige/30">
-                                        <td className="px-6 py-4 text-dark">#{order.order_number}</td>
-                                        <td className="px-6 py-4 text-dark">{order.customer_name || order.customer_email}</td>
-                                        <td className="px-6 py-4 text-dark">{formatPrice(order.total)}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 text-xs rounded ${statusColors[order.status] || 'bg-gray-100'}`}>
-                                                {statusLabels[order.status] || order.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-taupe text-sm">{formatDate(order.created_at)}</td>
-                                        <td className="px-6 py-4">
-                                            <Link
-                                                href={`/admin/pedidos/${order.id}`}
-                                                className="text-gold hover:underline text-sm"
-                                            >
-                                                Ver
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+
+                {/* Alertas de estoque */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <h2 className="text-lg font-medium text-gray-900 mb-4">Alertas de Estoque</h2>
+                    <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                            <span className="text-amber-600">Estoque baixo (≤5)</span>
+                            <span className="font-medium text-amber-600">{data.lowStockProducts}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-red-600">Sem estoque</span>
+                            <span className="font-medium text-red-600">{data.outOfStockProducts}</span>
+                        </div>
+                    </div>
+                    <Link
+                        href="/admin/produtos"
+                        className="block text-center mt-4 text-amber-600 hover:text-amber-700 text-sm font-medium"
+                    >
+                        Ver produtos →
+                    </Link>
+                </div>
+            </div>
+
+            {/* Ações Rápidas */}
+            <div className="mt-8">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Ações Rápidas</h2>
+                <div className="flex flex-wrap gap-3">
+                    <Link
+                        href="/admin/produtos/novo"
+                        className="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 font-medium text-sm"
+                    >
+                        + Novo Produto
+                    </Link>
+                    <Link
+                        href="/admin/cupons"
+                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium text-sm"
+                    >
+                        Gerenciar Cupons
+                    </Link>
+                    <Link
+                        href="/admin/configuracoes"
+                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium text-sm"
+                    >
+                        Configurar Frete
+                    </Link>
                 </div>
             </div>
         </div>
