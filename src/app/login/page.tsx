@@ -1,12 +1,52 @@
 "use client";
 
+import { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginForm() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const [form, setForm] = useState({ email: "", password: "" });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+
+    useEffect(() => {
+        if (searchParams.get("registered")) {
+            setSuccess("Conta criada com sucesso! Faça login para continuar.");
+        }
+    }, [searchParams]);
+
     const handleGoogleLogin = () => {
         signIn("google", { callbackUrl: "/" });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+        setLoading(true);
+
+        try {
+            const result = await signIn("credentials", {
+                email: form.email,
+                password: form.password,
+                redirect: false,
+            });
+
+            if (result?.error) {
+                setError("Email ou senha incorretos");
+            } else if (result?.ok) {
+                router.push("/");
+                router.refresh();
+            }
+        } catch (error) {
+            setError("Erro ao fazer login. Tente novamente.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -34,6 +74,18 @@ export default function LoginPage() {
                         <p className="text-taupe text-center text-sm mb-8">
                             Acesse sua conta para acompanhar seus pedidos
                         </p>
+
+                        {success && (
+                            <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded mb-6 text-sm">
+                                {success}
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-6 text-sm">
+                                {error}
+                            </div>
+                        )}
 
                         {/* Google Login */}
                         <button
@@ -70,12 +122,15 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        {/* Email Form (visual apenas) */}
-                        <form className="space-y-4">
+                        {/* Email Form */}
+                        <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm text-taupe mb-1">Email</label>
                                 <input
                                     type="email"
+                                    value={form.email}
+                                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                    required
                                     className="w-full px-4 py-2 border border-beige bg-cream focus:outline-none focus:border-gold"
                                     placeholder="seu@email.com"
                                 />
@@ -84,42 +139,46 @@ export default function LoginPage() {
                                 <label className="block text-sm text-taupe mb-1">Senha</label>
                                 <input
                                     type="password"
+                                    value={form.password}
+                                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                                    required
                                     className="w-full px-4 py-2 border border-beige bg-cream focus:outline-none focus:border-gold"
-                                    placeholder="••••••••"
+                                    placeholder="Sua senha"
                                 />
                             </div>
+
+                            <div className="text-right">
+                                <Link href="/esqueci-senha" className="text-sm text-gold hover:underline">
+                                    Esqueci minha senha
+                                </Link>
+                            </div>
+
                             <button
-                                type="button"
-                                className="w-full btn btn-primary"
-                                onClick={handleGoogleLogin}
+                                type="submit"
+                                disabled={loading}
+                                className="w-full btn btn-primary disabled:opacity-50"
                             >
-                                Entrar
+                                {loading ? "Entrando..." : "Entrar"}
                             </button>
                         </form>
 
-                        <p className="text-center text-taupe text-sm mt-6">
-                            Ainda não tem conta?{" "}
-                            <button
-                                onClick={handleGoogleLogin}
-                                className="text-gold hover:underline"
-                            >
-                                Cadastre-se com Google
-                            </button>
+                        <p className="text-center text-sm text-taupe mt-6">
+                            Não tem uma conta?{" "}
+                            <Link href="/registro" className="text-gold hover:underline">
+                                Criar conta
+                            </Link>
                         </p>
                     </div>
-
-                    <p className="text-center text-taupe text-xs mt-6">
-                        Ao continuar, você concorda com nossos{" "}
-                        <Link href="/termos" className="underline">
-                            Termos de Uso
-                        </Link>{" "}
-                        e{" "}
-                        <Link href="/privacidade" className="underline">
-                            Política de Privacidade
-                        </Link>
-                    </p>
                 </div>
             </div>
         </section>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-[70vh] flex items-center justify-center">Carregando...</div>}>
+            <LoginForm />
+        </Suspense>
     );
 }
