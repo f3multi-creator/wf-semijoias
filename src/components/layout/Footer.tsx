@@ -7,15 +7,13 @@ export function Footer() {
     const footerLinks = {
         institucional: [
             { name: "Sobre Nós", href: "/sobre" },
-            { name: "Nossa História", href: "/historia" },
-            { name: "Sustentabilidade", href: "/sustentabilidade" },
-            { name: "Blog", href: "/blog" },
+            { name: "Contato", href: "/contato" },
+            { name: "FAQ", href: "/faq" },
         ],
         ajuda: [
-            { name: "Central de Ajuda", href: "/ajuda" },
             { name: "Trocas e Devoluções", href: "/trocas" },
-            { name: "Política de Frete", href: "/frete" },
-            { name: "Rastrear Pedido", href: "/rastrear" },
+            { name: "Política de Privacidade", href: "/privacidade" },
+            { name: "Termos de Uso", href: "/termos" },
         ],
         contato: [
             { name: "WhatsApp", href: "https://wa.me/5511999999999" },
