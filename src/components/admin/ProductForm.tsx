@@ -40,11 +40,26 @@ export function ProductForm({ productId }: ProductFormProps) {
     const [images, setImages] = useState<{ id?: string; url: string; is_primary: boolean }[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // Carregar categorias
+    // Carregar categorias via API (com service role)
     useEffect(() => {
         async function loadCategories() {
-            const { data } = await supabase.from("categories").select("*").order("position");
-            if (data) setCategories(data);
+            try {
+                // Usar API interna que tem service role
+                const response = await fetch('/api/admin/categories');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (Array.isArray(data)) setCategories(data);
+                } else {
+                    // Fallback: tentar supabase direto
+                    const { data } = await supabase.from("categories").select("*").order("position");
+                    if (data) setCategories(data);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar categorias:', error);
+                // Fallback: tentar supabase direto
+                const { data } = await supabase.from("categories").select("*").order("position");
+                if (data) setCategories(data);
+            }
         }
         loadCategories();
     }, []);
@@ -312,7 +327,10 @@ export function ProductForm({ productId }: ProductFormProps) {
                         {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
                     </div>
                     <div>
-                        <label className="block text-sm text-taupe mb-1">Preço Comparativo (R$)</label>
+                        <label className="block text-sm text-taupe mb-1">
+                            Preço Original (R$)
+                            <span className="ml-1 text-xs text-gray-400" title="Preço antes do desconto. Exibe 'De R$X por R$Y' no site">ⓘ</span>
+                        </label>
                         <input
                             type="number"
                             name="compare_price"
@@ -321,8 +339,9 @@ export function ProductForm({ productId }: ProductFormProps) {
                             step="0.01"
                             min="0"
                             className="w-full px-4 py-2 border border-beige bg-offwhite focus:outline-none focus:border-gold"
-                            placeholder="349.90"
+                            placeholder="349.90 (opcional - mostra desconto)"
                         />
+                        <p className="text-xs text-gray-400 mt-1">Deixe vazio se não houver desconto</p>
                     </div>
                     <div>
                         <label className="block text-sm text-taupe mb-1">SKU</label>
@@ -354,7 +373,10 @@ export function ProductForm({ productId }: ProductFormProps) {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm text-taupe mb-1">Estoque *</label>
+                        <label className="block text-sm text-taupe mb-1">
+                            Estoque *
+                            <span className="ml-1 text-xs text-gray-400" title="Quantidade disponível para venda">ⓘ</span>
+                        </label>
                         <input
                             type="number"
                             name="stock_quantity"
@@ -362,8 +384,12 @@ export function ProductForm({ productId }: ProductFormProps) {
                             onChange={handleChange}
                             min="0"
                             className={`w-full px-4 py-2 border ${errors.stock_quantity ? 'border-red-500' : 'border-beige'} bg-offwhite focus:outline-none focus:border-gold`}
+                            placeholder="10"
                         />
                         {errors.stock_quantity && <p className="text-red-500 text-xs mt-1">{errors.stock_quantity}</p>}
+                        {parseInt(form.stock_quantity) <= 5 && parseInt(form.stock_quantity) > 0 && (
+                            <p className="text-amber-600 text-xs mt-1">⚠️ Estoque baixo</p>
+                        )}
                     </div>
                 </div>
 
