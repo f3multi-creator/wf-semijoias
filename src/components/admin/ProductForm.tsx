@@ -130,40 +130,49 @@ export function ProductForm({ productId }: ProductFormProps) {
         }
     };
 
-    // Upload de imagem
+    // Upload de imagem via API (com service role)
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
         setUploadingImage(true);
+        let hasError = false;
 
         for (const file of Array.from(files)) {
-            // Gerar nome único
-            const ext = file.name.split(".").pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-
-            // Upload para Supabase Storage
-            const { error } = await supabase.storage
-                .from("products")
-                .upload(fileName, file, {
-                    cacheControl: "31536000",
-                });
-
-            if (error) {
-                console.error("Erro no upload:", error);
+            // Validar antes de enviar
+            if (file.size > 5 * 1024 * 1024) {
+                alert(`Arquivo "${file.name}" é muito grande. Máximo: 5MB`);
+                hasError = true;
                 continue;
             }
 
-            // Obter URL pública
-            const { data: { publicUrl } } = supabase.storage
-                .from("products")
-                .getPublicUrl(fileName);
+            const formData = new FormData();
+            formData.append("file", file);
 
-            // Adicionar à lista
-            setImages(prev => [
-                ...prev,
-                { url: publicUrl, is_primary: prev.length === 0 },
-            ]);
+            try {
+                const response = await fetch("/api/admin/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    alert(`Erro ao enviar "${file.name}": ${result.error}`);
+                    hasError = true;
+                    continue;
+                }
+
+                // Adicionar à lista
+                setImages(prev => [
+                    ...prev,
+                    { url: result.url, is_primary: prev.length === 0 },
+                ]);
+            } catch (error) {
+                console.error("Erro no upload:", error);
+                alert(`Erro ao enviar "${file.name}"`);
+                hasError = true;
+            }
         }
 
         setUploadingImage(false);
