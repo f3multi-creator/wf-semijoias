@@ -33,17 +33,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verifica se o access token está configurado
-    if (!process.env.MERCADO_PAGO_ACCESS_TOKEN) {
+    // Verifica qual token usar (sandbox ou produção)
+    const isSandbox = process.env.MERCADO_PAGO_SANDBOX === "true";
+    const accessToken = isSandbox
+      ? process.env.MERCADO_PAGO_ACCESS_TOKEN_SANDBOX
+      : process.env.MERCADO_PAGO_ACCESS_TOKEN;
+
+    if (!accessToken) {
       return NextResponse.json(
-        { error: "Mercado Pago não configurado" },
+        { error: `Mercado Pago não configurado (${isSandbox ? 'sandbox' : 'produção'})` },
         { status: 500 }
       );
     }
 
     // Inicializa o cliente Mercado Pago
     const client = new MercadoPagoConfig({
-      accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN
+      accessToken: accessToken
     });
 
     const preference = new Preference(client);
