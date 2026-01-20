@@ -3,10 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 
 // Cliente Supabase Admin (com service role para bypass do RLS)
 function getSupabaseAdmin() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    // .trim() remove possíveis \r\n que podem estar no final das variáveis
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
     if (!url || !key) {
+        console.error("Supabase não configurado:", { url: !!url, key: !!key });
         return null;
     }
 
