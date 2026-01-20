@@ -1,26 +1,28 @@
 import Link from "next/link";
 import Image from "next/image";
-import { supabase } from "@/lib/supabase";
 
-// Revalidar a cada 60 segundos
-export const revalidate = 60;
+// Revalidar a cada requisição (sem cache)
+export const revalidate = 0;
 
 async function getAdminProducts() {
-    const { data, error } = await supabase
-        .from('products')
-        .select(`
-      *,
-      category:categories(name, slug),
-      images:product_images(url, is_primary)
-    `)
-        .order('created_at', { ascending: false });
+    // Usar API interna com service role para garantir dados atualizados
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000';
 
-    if (error) {
-        console.error('Erro ao buscar produtos:', error);
-        return [];
+    try {
+        const response = await fetch(`${baseUrl}/api/admin/products`, {
+            cache: 'no-store', // Força busca atualizada
+        });
+
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.error('Erro ao buscar produtos via API:', error);
     }
 
-    return data || [];
+    return [];
 }
 
 export default async function AdminProducts() {
@@ -114,10 +116,10 @@ export default async function AdminProducts() {
                                             <td className="px-6 py-4">
                                                 <span
                                                     className={`${product.stock_quantity === 0
-                                                            ? "text-red-600"
-                                                            : product.stock_quantity <= (product.low_stock_threshold || 5)
-                                                                ? "text-yellow-600"
-                                                                : "text-green-600"
+                                                        ? "text-red-600"
+                                                        : product.stock_quantity <= (product.low_stock_threshold || 5)
+                                                            ? "text-yellow-600"
+                                                            : "text-green-600"
                                                         }`}
                                                 >
                                                     {product.stock_quantity}
@@ -126,8 +128,8 @@ export default async function AdminProducts() {
                                             <td className="px-6 py-4">
                                                 <span
                                                     className={`px-2 py-1 text-xs rounded ${product.is_active
-                                                            ? "bg-green-100 text-green-800"
-                                                            : "bg-gray-100 text-gray-800"
+                                                        ? "bg-green-100 text-green-800"
+                                                        : "bg-gray-100 text-gray-800"
                                                         }`}
                                                 >
                                                     {product.is_active ? "Ativo" : "Inativo"}
