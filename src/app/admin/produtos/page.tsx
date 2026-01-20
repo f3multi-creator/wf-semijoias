@@ -1,28 +1,41 @@
 import Link from "next/link";
 import Image from "next/image";
+import { createClient } from "@supabase/supabase-js";
 
 // Revalidar a cada requisição (sem cache)
 export const revalidate = 0;
 
+// Cliente Supabase com service role para server-side
+function getSupabaseAdmin() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+
+    if (!url || !key) return null;
+    return createClient(url, key);
+}
+
 async function getAdminProducts() {
-    // Usar API interna com service role para garantir dados atualizados
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:3000';
-
-    try {
-        const response = await fetch(`${baseUrl}/api/admin/products`, {
-            cache: 'no-store', // Força busca atualizada
-        });
-
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (error) {
-        console.error('Erro ao buscar produtos via API:', error);
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
+        console.error('Supabase não configurado');
+        return [];
     }
 
-    return [];
+    const { data, error } = await supabase
+        .from('products')
+        .select(`
+            *,
+            category:categories(id, name, slug),
+            images:product_images(url, is_primary)
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Erro ao buscar produtos:', error);
+        return [];
+    }
+
+    return data || [];
 }
 
 export default async function AdminProducts() {
