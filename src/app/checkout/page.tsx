@@ -5,19 +5,41 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart, formatPrice } from "@/store/cart";
 
+interface AppliedCoupon {
+    code: string;
+    discount_type: "percentage" | "fixed";
+    discount_value: number;
+    min_purchase: number;
+}
+
 export default function CheckoutPage() {
     const { items, getSubtotal, getShipping, getTotal, removeItem, updateQuantity } = useCart();
     const [step, setStep] = useState<"cart" | "shipping" | "payment">("cart");
     const [isLoading, setIsLoading] = useState(false);
     const [couponCode, setCouponCode] = useState("");
-    const [couponApplied, setCouponApplied] = useState(false);
+    const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+    const [couponError, setCouponError] = useState("");
+    const [couponLoading, setCouponLoading] = useState(false);
     const [shippingCep, setShippingCep] = useState("");
     const [shippingOptions, setShippingOptions] = useState<any[]>([]);
     const [selectedShipping, setSelectedShipping] = useState<any>(null);
 
     const subtotal = getSubtotal();
     const shipping = selectedShipping?.price || getShipping(subtotal);
-    const discount = couponApplied ? subtotal * 0.1 : 0; // 10% de desconto exemplo
+
+    // Calcular desconto baseado no cupom aplicado
+    const calculateDiscount = () => {
+        if (!appliedCoupon) return 0;
+        if (subtotal < appliedCoupon.min_purchase) return 0;
+
+        if (appliedCoupon.discount_type === "percentage") {
+            return subtotal * (appliedCoupon.discount_value / 100);
+        } else {
+            return Math.min(appliedCoupon.discount_value, subtotal);
+        }
+    };
+
+    const discount = calculateDiscount();
     const total = subtotal + shipping - discount;
 
     // Calcular frete usando a API real do Melhor Envio
@@ -44,21 +66,16 @@ export default function CheckoutPage() {
 
             if (data.success && data.options) {
                 setShippingOptions(data.options);
-                // Seleciona o mais barato por padrão
                 if (data.options.length > 0 && !selectedShipping) {
                     setSelectedShipping(data.options[0]);
                 }
             } else {
-                console.error("Erro ao calcular frete:", data.error);
-                // Fallback para valores simulados em caso de erro
                 setShippingOptions([
                     { id: "pac", name: "PAC", company: "Correios", price: 19.90, delivery_time: 7 },
                     { id: "sedex", name: "SEDEX", company: "Correios", price: 34.90, delivery_time: 3 },
                 ]);
             }
         } catch (error) {
-            console.error("Erro ao calcular frete:", error);
-            // Fallback para valores simulados em caso de erro
             setShippingOptions([
                 { id: "pac", name: "PAC", company: "Correios", price: 19.90, delivery_time: 7 },
                 { id: "sedex", name: "SEDEX", company: "Correios", price: 34.90, delivery_time: 3 },
@@ -68,11 +85,50 @@ export default function CheckoutPage() {
         }
     };
 
-    // Simula aplicação de cupom
-    const applyCoupon = () => {
-        if (couponCode.toUpperCase() === "BEMVINDA10") {
-            setCouponApplied(true);
+    // Aplicar cupom via API
+    const applyCoupon = async () => {
+        if (!couponCode.trim()) return;
+
+        setCouponLoading(true);
+        setCouponError("");
+
+        try {
+            const response = await fetch(`/api/admin/coupons?code=${couponCode.toUpperCase()}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                setCouponError(data.error || "Cupom inválido");
+                setAppliedCoupon(null);
+                return;
+            }
+
+            // Verificar compra mínima
+            if (data.min_purchase && subtotal < data.min_purchase) {
+                setCouponError(`Compra mínima de ${formatPrice(data.min_purchase)}`);
+                setAppliedCoupon(null);
+                return;
+            }
+
+            setAppliedCoupon({
+                code: data.code,
+                discount_type: data.discount_type,
+                discount_value: data.discount_value,
+                min_purchase: data.min_purchase || 0,
+            });
+            setCouponError("");
+        } catch (error) {
+            setCouponError("Erro ao validar cupom");
+            setAppliedCoupon(null);
+        } finally {
+            setCouponLoading(false);
         }
+    };
+
+    // Remover cupom
+    const removeCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponCode("");
+        setCouponError("");
     };
 
     // Iniciar pagamento com Mercado Pago
@@ -380,20 +436,37 @@ export default function CheckoutPage() {
                                         placeholder="Cupom de desconto"
                                         value={couponCode}
                                         onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                        disabled={couponApplied}
+                                        disabled={!!appliedCoupon || couponLoading}
                                         className="flex-1 px-3 py-2 text-sm border border-beige bg-cream focus:outline-none focus:border-gold"
                                     />
-                                    <button
-                                        onClick={applyCoupon}
-                                        disabled={couponApplied || !couponCode}
-                                        className="px-4 py-2 text-sm bg-dark text-cream hover:bg-charcoal transition-colors disabled:opacity-50"
-                                    >
-                                        Aplicar
-                                    </button>
+                                    {appliedCoupon ? (
+                                        <button
+                                            onClick={removeCoupon}
+                                            className="px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                        >
+                                            Remover
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={applyCoupon}
+                                            disabled={couponLoading || !couponCode}
+                                            className="px-4 py-2 text-sm bg-dark text-cream hover:bg-charcoal transition-colors disabled:opacity-50"
+                                        >
+                                            {couponLoading ? "..." : "Aplicar"}
+                                        </button>
+                                    )}
                                 </div>
-                                {couponApplied && (
+                                {appliedCoupon && (
                                     <p className="text-green-600 text-xs mt-1">
-                                        ✓ Cupom BEMVINDA10 aplicado!
+                                        ✓ Cupom {appliedCoupon.code} aplicado!
+                                        ({appliedCoupon.discount_type === "percentage"
+                                            ? `${appliedCoupon.discount_value}%`
+                                            : formatPrice(appliedCoupon.discount_value)} de desconto)
+                                    </p>
+                                )}
+                                {couponError && (
+                                    <p className="text-red-600 text-xs mt-1">
+                                        {couponError}
                                     </p>
                                 )}
                             </div>
