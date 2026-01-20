@@ -17,9 +17,9 @@ export function Header() {
         { name: "Novidades", href: "/novidades" },
         { name: "Brincos", href: "/categoria/brincos" },
         { name: "Colares", href: "/categoria/colares" },
-        { name: "Anéis", href: "/categoria/aneis" },
+        { name: "Conjuntos", href: "/categoria/conjuntos" },
         { name: "Pulseiras", href: "/categoria/pulseiras" },
-        { name: "Coleções", href: "/colecoes" },
+        { name: "Sobre Nós", href: "/sobre" },
     ];
 
     return (
