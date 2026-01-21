@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ProductCard } from "@/components/product/ProductCard";
 import { getFeaturedProducts, getCategories } from "@/lib/db";
+import { InstagramFeed } from "@/components/instagram/InstagramFeed";
 
 // Revalidar a cada 60 segundos
 export const revalidate = 60;
@@ -188,31 +189,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Instagram Feed Placeholder */}
-      <section className="section bg-cream">
-        <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="font-display text-3xl md:text-4xl text-dark mb-3">
-              @wfsemijoias
-            </h2>
-            <p className="text-taupe">Siga-nos no Instagram e inspire-se</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            {[...Array(6)].map((_, i) => (
-              <a
-                key={i}
-                href="https://instagram.com/wfsemijoias"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="aspect-square bg-beige hover:opacity-80 transition-opacity overflow-hidden"
-              >
-                <div className="w-full h-full bg-gradient-to-br from-nude via-sand to-stone" />
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Instagram Feed */}
+      <InstagramFeed username="wfsemijoias" count={6} />
 
       {/* Trust Badges */}
       <section className="py-12 bg-beige">
