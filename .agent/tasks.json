@@ -1,0 +1,104 @@
+{
+    "version": "1.0.0",
+    "lastUpdated": "2026-01-21",
+    "autoGenerateEnabled": true,
+    "tasks": [
+        {
+            "id": "task-001",
+            "title": "Implementar página de busca",
+            "priority": "high",
+            "status": "pending",
+            "category": "feature",
+            "description": "Criar página /busca com busca em tempo real de produtos usando Supabase full-text search",
+            "subtasks": [
+                "Criar API route /api/search",
+                "Criar componente SearchPage com input e resultados",
+                "Adicionar debounce na busca para performance"
+            ],
+            "estimatedEffort": "medium",
+            "createdAt": "2026-01-21",
+            "createdBy": "user"
+        },
+        {
+            "id": "task-002",
+            "title": "Melhorar SEO com meta tags dinâmicas",
+            "priority": "high",
+            "status": "pending",
+            "category": "optimization",
+            "description": "Adicionar generateMetadata em todas as páginas dinâmicas (produto, categoria)",
+            "subtasks": [
+                "Adicionar metadata na página de produto",
+                "Adicionar metadata na página de categoria",
+                "Criar imagens OG dinâmicas"
+            ],
+            "estimatedEffort": "medium",
+            "createdAt": "2026-01-21",
+            "createdBy": "user"
+        },
+        {
+            "id": "task-003",
+            "title": "Implementar wishlist",
+            "priority": "medium",
+            "status": "pending",
+            "category": "feature",
+            "description": "Sistema de favoritos persistente com Zustand + localStorage",
+            "subtasks": [
+                "Criar wishlistStore com Zustand",
+                "Adicionar botão de coração no ProductCard",
+                "Criar página /favoritos"
+            ],
+            "estimatedEffort": "medium",
+            "createdAt": "2026-01-21",
+            "createdBy": "user"
+        },
+        {
+            "id": "task-004",
+            "title": "Otimizar imagens com blur placeholder",
+            "priority": "medium",
+            "status": "pending",
+            "category": "performance",
+            "description": "Adicionar blurDataURL em todas as imagens para melhor LCP",
+            "subtasks": [
+                "Criar função para gerar blur hash",
+                "Atualizar ProductCard com placeholder",
+                "Atualizar galeria de produto"
+            ],
+            "estimatedEffort": "small",
+            "createdAt": "2026-01-21",
+            "createdBy": "user"
+        },
+        {
+            "id": "task-005",
+            "title": "Adicionar animações de página",
+            "priority": "low",
+            "status": "pending",
+            "category": "ux",
+            "description": "Implementar transições suaves entre páginas e animações de entrada",
+            "subtasks": [
+                "Criar componente AnimatedSection",
+                "Adicionar intersection observer para animações on-scroll",
+                "Respeitar prefers-reduced-motion"
+            ],
+            "estimatedEffort": "small",
+            "createdAt": "2026-01-21",
+            "createdBy": "user"
+        }
+    ],
+    "completedTasks": [],
+    "config": {
+        "priorityOrder": [
+            "high",
+            "medium",
+            "low"
+        ],
+        "categoryOrder": [
+            "bugfix",
+            "feature",
+            "optimization",
+            "performance",
+            "ux",
+            "refactor"
+        ],
+        "autoGeneratePrompt": "Pense em uma melhoria criativa para o e-commerce: pode ser UX, performance, acessibilidade, ou uma feature inovadora. Quebre em 2-3 subtasks."
+    }
+}
