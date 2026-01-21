@@ -65,15 +65,20 @@ src/
 - [x] Painel admin básico
 - [x] Integração Supabase
 - [x] Layout responsivo
+- [x] Checkout completo com MercadoPago
+- [x] Cálculo de frete (Melhor Envio API)
+
+## ⏳ Em Andamento
+
+- [ ] Emails transacionais (Resend API - faltam configs)
 
 ## 🚧 Funcionalidades Pendentes
 
 ### Prioridade ALTA
-- [ ] Checkout completo com MercadoPago
-- [ ] Cálculo de frete (Correios API)
-- [ ] Emails transacionais
 - [ ] Página de busca
-- [ ] Wishlist
+- [ ] Wishlist (favoritos)
+- [ ] Instagram feed real
+- [ ] Auditoria do painel admin (bugs + completude)
 
 ### Prioridade MÉDIA
 - [ ] Reviews de produtos
@@ -83,7 +88,6 @@ src/
 - [ ] Blog/Novidades
 
 ### Prioridade BAIXA
-- [ ] Instagram feed real
 - [ ] Notificações push
 - [ ] Chat de suporte
 - [ ] PWA

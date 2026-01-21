@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useWishlist } from "@/store/wishlist";
 
 export interface Product {
     id: string;
@@ -18,6 +21,9 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+    const { isInWishlist, toggleItem } = useWishlist();
+    const isLiked = isInWishlist(product.id);
+
     const discount = product.comparePrice
         ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)
         : 0;
@@ -26,6 +32,20 @@ export function ProductCard({ product }: ProductCardProps) {
         return value.toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
+        });
+    };
+
+    const handleWishlistClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleItem({
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            price: product.price,
+            comparePrice: product.comparePrice,
+            image: product.images[0] || "/placeholder-product.jpg",
+            category: product.category,
         });
     };
 
@@ -75,14 +95,19 @@ export function ProductCard({ product }: ProductCardProps) {
                         </button>
                     </div>
 
-                    {/* Wishlist Button */}
+                    {/* Wishlist Button - Now Functional */}
                     <button
-                        className="absolute top-3 right-3 w-9 h-9 bg-cream/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-cream"
-                        aria-label="Adicionar aos favoritos"
+                        onClick={handleWishlistClick}
+                        className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all
+                            ${isLiked
+                                ? 'bg-gold text-white opacity-100'
+                                : 'bg-cream/90 text-dark opacity-0 group-hover:opacity-100 hover:bg-cream hover:text-gold'
+                            }`}
+                        aria-label={isLiked ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                     >
                         <svg
-                            className="w-4 h-4 text-dark hover:text-gold transition-colors"
-                            fill="none"
+                            className="w-4 h-4 transition-colors"
+                            fill={isLiked ? "currentColor" : "none"}
                             stroke="currentColor"
                             viewBox="0 0 24 24"
                         >

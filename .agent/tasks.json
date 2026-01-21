@@ -21,24 +21,8 @@
         },
         {
             "id": "task-002",
-            "title": "Melhorar SEO com meta tags dinâmicas",
+            "title": "Implementar wishlist (favoritos)",
             "priority": "high",
-            "status": "pending",
-            "category": "optimization",
-            "description": "Adicionar generateMetadata em todas as páginas dinâmicas (produto, categoria)",
-            "subtasks": [
-                "Adicionar metadata na página de produto",
-                "Adicionar metadata na página de categoria",
-                "Criar imagens OG dinâmicas"
-            ],
-            "estimatedEffort": "medium",
-            "createdAt": "2026-01-21",
-            "createdBy": "user"
-        },
-        {
-            "id": "task-003",
-            "title": "Implementar wishlist",
-            "priority": "medium",
             "status": "pending",
             "category": "feature",
             "description": "Sistema de favoritos persistente com Zustand + localStorage",
@@ -52,39 +36,130 @@
             "createdBy": "user"
         },
         {
-            "id": "task-004",
-            "title": "Otimizar imagens com blur placeholder",
-            "priority": "medium",
+            "id": "task-003",
+            "title": "Instagram feed real na homepage",
+            "priority": "high",
             "status": "pending",
-            "category": "performance",
-            "description": "Adicionar blurDataURL em todas as imagens para melhor LCP",
+            "category": "feature",
+            "description": "Substituir placeholders por feed real do Instagram usando Instagram Graph API ou widget de terceiros como Elfsight/Curator.io",
             "subtasks": [
-                "Criar função para gerar blur hash",
-                "Atualizar ProductCard com placeholder",
-                "Atualizar galeria de produto"
+                "Pesquisar soluções: Instagram Graph API, Elfsight, Curator.io, Behold.so",
+                "Implementar componente InstagramFeed",
+                "Integrar na homepage"
             ],
-            "estimatedEffort": "small",
+            "estimatedEffort": "medium",
             "createdAt": "2026-01-21",
             "createdBy": "user"
         },
         {
-            "id": "task-005",
-            "title": "Adicionar animações de página",
-            "priority": "low",
+            "id": "task-004",
+            "title": "Corrigir filtros de produtos no admin",
+            "priority": "high",
             "status": "pending",
-            "category": "ux",
-            "description": "Implementar transições suaves entre páginas e animações de entrada",
+            "category": "bugfix",
+            "description": "Os filtros de busca, categoria e status na página de produtos do admin são apenas UI estática. Precisam funcionar de verdade.",
             "subtasks": [
-                "Criar componente AnimatedSection",
-                "Adicionar intersection observer para animações on-scroll",
-                "Respeitar prefers-reduced-motion"
+                "Converter página para client component ou adicionar query params",
+                "Implementar filtro por categoria com Supabase",
+                "Implementar filtro por status (ativo/inativo)",
+                "Implementar busca por nome"
             ],
             "estimatedEffort": "small",
             "createdAt": "2026-01-21",
+            "createdBy": "agent",
+            "notes": "Bug identificado durante auditoria do admin"
+        },
+        {
+            "id": "task-005",
+            "title": "Melhorar SEO com meta tags dinâmicas",
+            "priority": "medium",
+            "status": "pending",
+            "category": "optimization",
+            "description": "Adicionar generateMetadata em todas as páginas dinâmicas (produto, categoria)",
+            "subtasks": [
+                "Adicionar metadata na página de produto",
+                "Adicionar metadata na página de categoria",
+                "Criar imagens OG dinâmicas"
+            ],
+            "estimatedEffort": "medium",
+            "createdAt": "2026-01-21",
             "createdBy": "user"
+        },
+        {
+            "id": "task-006",
+            "title": "Adicionar paginação na lista de produtos do admin",
+            "priority": "medium",
+            "status": "pending",
+            "category": "ux",
+            "description": "Quando houver muitos produtos, a lista fica muito longa. Adicionar paginação ou infinite scroll.",
+            "subtasks": [
+                "Implementar paginação com limit/offset no Supabase",
+                "Adicionar navegação de páginas na UI"
+            ],
+            "estimatedEffort": "small",
+            "createdAt": "2026-01-21",
+            "createdBy": "agent"
         }
     ],
     "completedTasks": [],
+    "adminAuditReport": {
+        "date": "2026-01-21",
+        "summary": "Auditoria completa do painel administrativo",
+        "modules": {
+            "dashboard": {
+                "status": "ok",
+                "features": [
+                    "Receita total",
+                    "Últimos 7 dias",
+                    "Ticket médio",
+                    "Produtos ativos",
+                    "Pedidos por status",
+                    "Alertas de estoque",
+                    "Ações rápidas"
+                ]
+            },
+            "produtos": {
+                "status": "bugfix-needed",
+                "features": [
+                    "Listagem",
+                    "Criar",
+                    "Editar",
+                    "Ver na loja"
+                ],
+                "bugs": [
+                    "Filtros de busca/categoria/status não funcionam (UI estática)"
+                ]
+            },
+            "pedidos": {
+                "status": "ok",
+                "features": [
+                    "Listagem com filtro por status",
+                    "Ver detalhes",
+                    "Atualizar status",
+                    "Adicionar código de rastreamento"
+                ]
+            },
+            "cupons": {
+                "status": "ok",
+                "features": [
+                    "Listagem",
+                    "Criar",
+                    "Editar",
+                    "Excluir",
+                    "Tipo porcentagem/fixo",
+                    "Limite de usos",
+                    "Data de expiração",
+                    "Compra mínima"
+                ]
+            },
+            "configuracoes": {
+                "status": "ok",
+                "features": [
+                    "Configuração de frete com Melhor Envio"
+                ]
+            }
+        }
+    },
     "config": {
         "priorityOrder": [
             "high",

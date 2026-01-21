@@ -24,6 +24,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const search = searchParams.get("search");
+    const categoryId = searchParams.get("category_id");
+    const isActive = searchParams.get("is_active");
 
     try {
         if (id) {
@@ -37,11 +40,27 @@ export async function GET(request: NextRequest) {
             if (error) throw error;
             return NextResponse.json(data);
         } else {
-            // Listar todos os produtos
-            const { data, error } = await supabase
+            // Listar produtos com filtros
+            let query = supabase
                 .from("products")
-                .select("*, images:product_images(*), category:categories(id, name, slug)")
-                .order("created_at", { ascending: false });
+                .select("*, images:product_images(*), category:categories(id, name, slug)");
+
+            // Filtro por busca (nome ou slug)
+            if (search) {
+                query = query.or(`name.ilike.%${search}%,slug.ilike.%${search}%`);
+            }
+
+            // Filtro por categoria
+            if (categoryId) {
+                query = query.eq("category_id", categoryId);
+            }
+
+            // Filtro por status ativo/inativo
+            if (isActive !== null && isActive !== "") {
+                query = query.eq("is_active", isActive === "true");
+            }
+
+            const { data, error } = await query.order("created_at", { ascending: false });
 
             if (error) throw error;
             return NextResponse.json(data);

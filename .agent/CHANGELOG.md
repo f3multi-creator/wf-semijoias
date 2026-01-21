@@ -2,52 +2,71 @@
 
 Todas as mudanças notáveis do projeto são documentadas neste arquivo.
 
-O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
-
 ---
 
-## [Em Desenvolvimento] - 2026-01-21
+## [Sessão 2026-01-21] - Desenvolvimento Autônomo
 
 ### Adicionado
-- Sistema de desenvolvimento autônomo configurado
-- Arquivo `SPEC.md` com especificação completa
-- Arquivo `tasks.json` com sistema de tarefas
-- Workflow `/turbo` para execução autônoma
 
-### Para Revisar
-> Lista de mudanças que precisam de revisão do usuário antes de merge
+- **[src/app/api/search/route.ts](file:///c:/Users/DBS%20Web/Downloads/wf-semijoias/src/app/api/search/route.ts)**: API de busca de produtos
+  - Full-text search em nome e descrição
+  - Limite de 20 resultados
+  - Mínimo 2 caracteres para buscar
 
-*Nenhuma mudança pendente de revisão*
+- **[src/app/busca/page.tsx](file:///c:/Users/DBS%20Web/Downloads/wf-semijoias/src/app/busca/page.tsx)**: Página de busca
+  - Busca em tempo real com debounce de 300ms
+  - Grid responsivo de resultados
+  - Estado de loading, vazio e resultados
+  - *Para testar: acesse `/busca`*
+
+- **[src/store/wishlist.ts](file:///c:/Users/DBS%20Web/Downloads/wf-semijoias/src/store/wishlist.ts)**: Store de favoritos (Zustand)
+  - Persistência em localStorage
+  - Add/remove/toggle/clear
+
+- **[src/app/favoritos/page.tsx](file:///c:/Users/DBS%20Web/Downloads/wf-semijoias/src/app/favoritos/page.tsx)**: Página de favoritos
+  - Lista todos os itens salvos
+  - Botão para adicionar ao carrinho
+  - Botão para remover dos favoritos
+  - *Para testar: acesse `/favoritos`*
+
+### Corrigido
+
+- **[src/app/admin/produtos/page.tsx](file:///c:/Users/DBS%20Web/Downloads/wf-semijoias/src/app/admin/produtos/page.tsx)**: Filtros de produtos agora funcionam
+  - Busca por nome com debounce
+  - Filtro por categoria (dinâmico do banco)
+  - Filtro por status ativo/inativo
+  - Botão "Limpar filtros"
+  - *BUG CORRIGIDO: filtros eram apenas UI estática*
+
+- **[src/app/api/admin/products/route.ts](file:///c:/Users/DBS%20Web/Downloads/wf-semijoias/src/app/api/admin/products/route.ts)**: API agora aceita query params
+  - `search`: busca por nome/slug
+  - `category_id`: filtro por categoria
+  - `is_active`: filtro por status
+
+### Modificado
+
+- **[src/components/product/ProductCard.tsx](file:///c:/Users/DBS%20Web/Downloads/wf-semijoias/src/components/product/ProductCard.tsx)**: Botão de wishlist funcional
+  - Convertido para client component
+  - Conectado ao wishlist store
+  - Visual diferente quando item está nos favoritos
+  - *Para testar: passe o mouse sobre qualquer produto na home*
 
 ---
 
-## Como ler este changelog
+## Auditoria do Painel Admin
 
-Cada entrada segue o formato:
-
-```
-### [Tipo de Mudança]
-- **[Arquivo/Componente]**: Descrição breve da mudança
-  - Detalhes adicionais se necessário
-  - Link para testar: `página/rota`
-```
-
-### Tipos de Mudança
-- **Adicionado**: Novas funcionalidades
-- **Modificado**: Alterações em funcionalidades existentes
-- **Corrigido**: Correções de bugs
-- **Removido**: Funcionalidades removidas
-- **Performance**: Otimizações
-- **Refatorado**: Melhorias de código sem mudar comportamento
+| Módulo | Status | Notas |
+|--------|--------|-------|
+| Dashboard | ✅ OK | Métricas, alertas, ações rápidas |
+| Produtos | ✅ Corrigido | Filtros agora funcionam |
+| Pedidos | ✅ OK | Listagem, filtros, detalhes |
+| Cupons | ✅ OK | CRUD completo |
+| Configurações | ✅ OK | Frete com Melhor Envio |
 
 ---
 
-## Histórico de Sessões Autônomas
+## Próximas Tarefas
 
-### Sessão 1 - 2026-01-21
-- **Duração**: Configuração inicial
-- **Tarefas completadas**: 0
-- **Tarefas criadas**: 5 tarefas iniciais
-- **Build status**: ✅ N/A (configuração)
-
-*Próximas sessões serão logadas aqui automaticamente*
+- [ ] Instagram feed real
+- [ ] SEO meta tags dinâmicas
+- [ ] Paginação na lista de produtos admin
