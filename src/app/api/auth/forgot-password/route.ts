@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { sendPasswordResetEmail } from "@/lib/email";
 
 function getSupabaseAdmin() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
         // Buscar usuário
         const { data: user } = await supabase
             .from("users")
-            .select("id, email")
+            .select("id, name, email")
             .eq("email", email.toLowerCase())
             .single();
 
@@ -47,10 +48,8 @@ export async function POST(request: NextRequest) {
             })
             .eq("id", user.id);
 
-        // TODO: Enviar email com Resend ou outro serviço
-        // Por enquanto, apenas log no console (desenvolvimento)
-        const resetUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/redefinir-senha?token=${resetToken}`;
-        console.log("🔗 Link de recuperação:", resetUrl);
+        // Enviar email de recuperação via Resend
+        await sendPasswordResetEmail(user.email, user.name || "Cliente", resetToken);
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
@@ -58,3 +57,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Erro ao processar solicitação" }, { status: 500 });
     }
 }
+

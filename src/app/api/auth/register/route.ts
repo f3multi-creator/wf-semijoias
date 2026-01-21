@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
+import { sendWelcomeEmail } from "@/lib/email";
 
 function getSupabaseAdmin() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -54,6 +55,9 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (error) throw error;
+
+        // Enviar email de boas-vindas (não bloqueia o registro)
+        sendWelcomeEmail(data.email, data.name).catch(console.error);
 
         return NextResponse.json({
             success: true,
