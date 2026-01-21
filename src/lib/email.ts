@@ -1,6 +1,19 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy loading do Resend para evitar erro no build
+let resendInstance: Resend | null = null;
+
+function getResend(): Resend | null {
+  if (!resendInstance) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.warn('RESEND_API_KEY not configured');
+      return null;
+    }
+    resendInstance = new Resend(apiKey);
+  }
+  return resendInstance;
+}
 
 // Email base da loja
 const FROM_EMAIL = 'WF Semijoias <noreply@wfsemijoias.com.br>';
@@ -21,12 +34,14 @@ const emailStyles = `
 
 // Email de boas-vindas após registro
 export async function sendWelcomeEmail(to: string, name: string) {
-    try {
-        await resend.emails.send({
-            from: FROM_EMAIL,
-            to,
-            subject: 'Bem-vinda à WF Semijoias! ✨',
-            html: `
+  const resend = getResend();
+  if (!resend) return { success: false, error: 'Email service not configured' };
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: 'Bem-vinda à WF Semijoias! ✨',
+      html: `
         <!DOCTYPE html>
         <html>
         <head>${emailStyles}</head>
@@ -54,24 +69,27 @@ export async function sendWelcomeEmail(to: string, name: string) {
         </body>
         </html>
       `,
-        });
-        return { success: true };
-    } catch (error) {
-        console.error('Erro ao enviar email de boas-vindas:', error);
-        return { success: false, error };
-    }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao enviar email de boas-vindas:', error);
+    return { success: false, error };
+  }
 }
 
 // Email de recuperação de senha
 export async function sendPasswordResetEmail(to: string, name: string, resetToken: string) {
-    const resetUrl = `${SITE_URL}/redefinir-senha?token=${resetToken}`;
+  const resend = getResend();
+  if (!resend) return { success: false, error: 'Email service not configured' };
 
-    try {
-        await resend.emails.send({
-            from: FROM_EMAIL,
-            to,
-            subject: 'Redefinir sua senha - WF Semijoias',
-            html: `
+  const resetUrl = `${SITE_URL}/redefinir-senha?token=${resetToken}`;
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: 'Redefinir sua senha - WF Semijoias',
+      html: `
         <!DOCTYPE html>
         <html>
         <head>${emailStyles}</head>
@@ -95,23 +113,25 @@ export async function sendPasswordResetEmail(to: string, name: string, resetToke
         </body>
         </html>
       `,
-        });
-        return { success: true };
-    } catch (error) {
-        console.error('Erro ao enviar email de recuperação:', error);
-        return { success: false, error };
-    }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao enviar email de recuperação:', error);
+    return { success: false, error };
+  }
 }
 
 // Email de confirmação de pedido
 export async function sendOrderConfirmationEmail(
-    to: string,
-    name: string,
-    orderId: string,
-    items: Array<{ name: string; quantity: number; price: number }>,
-    total: number
+  to: string,
+  name: string,
+  orderId: string,
+  items: Array<{ name: string; quantity: number; price: number }>,
+  total: number
 ) {
-    const itemsHtml = items.map(item => `
+  const resend = getResend();
+  if (!resend) return { success: false, error: 'Email service not configured' };
+  const itemsHtml = items.map(item => `
     <tr>
       <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name}</td>
       <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
@@ -119,12 +139,12 @@ export async function sendOrderConfirmationEmail(
     </tr>
   `).join('');
 
-    try {
-        await resend.emails.send({
-            from: FROM_EMAIL,
-            to,
-            subject: `Pedido #${orderId.slice(0, 8).toUpperCase()} confirmado! 🎉`,
-            html: `
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: `Pedido #${orderId.slice(0, 8).toUpperCase()} confirmado! 🎉`,
+      html: `
         <!DOCTYPE html>
         <html>
         <head>${emailStyles}</head>
@@ -167,27 +187,29 @@ export async function sendOrderConfirmationEmail(
         </body>
         </html>
       `,
-        });
-        return { success: true };
-    } catch (error) {
-        console.error('Erro ao enviar email de confirmação:', error);
-        return { success: false, error };
-    }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao enviar email de confirmação:', error);
+    return { success: false, error };
+  }
 }
 
 // Email de pedido enviado com código de rastreamento
 export async function sendShippingEmail(
-    to: string,
-    name: string,
-    orderId: string,
-    trackingCode: string
+  to: string,
+  name: string,
+  orderId: string,
+  trackingCode: string
 ) {
-    try {
-        await resend.emails.send({
-            from: FROM_EMAIL,
-            to,
-            subject: `Seu pedido foi enviado! 📦 - #${orderId.slice(0, 8).toUpperCase()}`,
-            html: `
+  const resend = getResend();
+  if (!resend) return { success: false, error: 'Email service not configured' };
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: `Seu pedido foi enviado! 📦 - #${orderId.slice(0, 8).toUpperCase()}`,
+      html: `
         <!DOCTYPE html>
         <html>
         <head>${emailStyles}</head>
@@ -217,10 +239,10 @@ export async function sendShippingEmail(
         </body>
         </html>
       `,
-        });
-        return { success: true };
-    } catch (error) {
-        console.error('Erro ao enviar email de envio:', error);
-        return { success: false, error };
-    }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao enviar email de envio:', error);
+    return { success: false, error };
+  }
 }

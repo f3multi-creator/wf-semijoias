@@ -114,7 +114,7 @@ export default function RedefinirSenhaPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 className="w-full px-4 py-3 border focus:outline-none focus:ring-2"
-                                style={{ borderColor: "#e8e6e3", focusRingColor: "#b8860b" }}
+                                style={{ borderColor: "#e8e6e3" }}
                                 placeholder="Mínimo 6 caracteres"
                             />
                         </div>
