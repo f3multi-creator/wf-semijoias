@@ -34,12 +34,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Verifica qual token usar (sandbox ou produção)
-    const isSandbox = process.env.MERCADO_PAGO_SANDBOX === "true";
-    const accessToken = isSandbox
+    const isSandbox = process.env.MERCADO_PAGO_SANDBOX?.trim() === "true";
+    let accessToken = isSandbox
       ? process.env.MERCADO_PAGO_ACCESS_TOKEN_SANDBOX
       : process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
+    // Remove possíveis caracteres inváidos (\r\n) do token
+    accessToken = accessToken?.trim().replace(/[\r\n]/g, '');
+
     if (!accessToken) {
+      console.error('Token não encontrado:', {
+        isSandbox,
+        hasSandboxToken: !!process.env.MERCADO_PAGO_ACCESS_TOKEN_SANDBOX,
+        hasProdToken: !!process.env.MERCADO_PAGO_ACCESS_TOKEN
+      });
       return NextResponse.json(
         { error: `Mercado Pago não configurado (${isSandbox ? 'sandbox' : 'produção'})` },
         { status: 500 }
