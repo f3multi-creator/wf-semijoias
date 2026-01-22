@@ -96,59 +96,70 @@ export default async function ProductPage({ params }: ProductPageProps) {
             {/* Product Section */}
             <section className="section bg-cream">
                 <div className="container">
-                    <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+                    <div className="grid lg:grid-cols-[1fr_1fr] gap-8 lg:gap-16 items-start">
                         {/* Gallery - Agora usando componente interativo */}
-                        <ProductGallery
-                            images={galleryImages}
-                            productName={product.name}
-                            discount={discount}
-                        />
+                        <div className="lg:sticky lg:top-8">
+                            <ProductGallery
+                                images={galleryImages}
+                                productName={product.name}
+                                discount={discount}
+                            />
+                        </div>
 
                         {/* Product Info */}
-                        <div className="lg:py-8">
-                            <p className="text-gold uppercase tracking-[0.2em] text-sm mb-2">
+                        <div className="lg:py-4">
+                            {/* Category */}
+                            <p className="text-gold uppercase tracking-[0.2em] text-sm mb-3">
                                 {product.category?.name || 'Semijoias'}
                             </p>
-                            <h1 className="font-display text-3xl md:text-4xl text-dark mb-4">
+
+                            {/* Title */}
+                            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl text-dark mb-6 leading-tight">
                                 {product.name}
                             </h1>
 
-                            {/* Price */}
-                            <div className="flex items-center gap-3 mb-6">
-                                <span className="text-2xl text-dark font-medium">
-                                    {formatPrice(product.price)}
-                                </span>
-                                {product.compare_price && (
-                                    <span className="text-lg text-taupe line-through">
-                                        {formatPrice(product.compare_price)}
+                            {/* Price Section */}
+                            <div className="mb-8 pb-6 border-b border-beige">
+                                <div className="flex items-baseline gap-4 mb-2">
+                                    <span className="text-3xl text-dark font-semibold">
+                                        {formatPrice(product.price)}
                                     </span>
-                                )}
+                                    {product.compare_price && (
+                                        <span className="text-lg text-taupe line-through">
+                                            {formatPrice(product.compare_price)}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-taupe text-sm">
+                                    ou <strong>12x</strong> de {formatPrice(product.price / 12)} sem juros
+                                </p>
                             </div>
-
-                            <p className="text-taupe text-sm mb-6">
-                                ou 12x de {formatPrice(product.price / 12)} sem juros
-                            </p>
 
                             {/* Description */}
                             {product.description && (
-                                <p className="text-brown leading-relaxed mb-8">
-                                    {product.description}
-                                </p>
+                                <div className="mb-8">
+                                    <h3 className="text-sm font-semibold uppercase tracking-wider text-brown mb-3">
+                                        Descrição
+                                    </h3>
+                                    <p className="text-brown leading-relaxed text-base whitespace-pre-line">
+                                        {product.description}
+                                    </p>
+                                </div>
                             )}
 
                             {/* Stock Status */}
                             <div className="flex items-center gap-2 mb-6">
                                 {product.stock_quantity > 0 ? (
                                     <>
-                                        <span className="w-2 h-2 bg-green-500 rounded-full" />
-                                        <span className="text-sm text-green-700">
+                                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                        <span className="text-sm text-green-700 font-medium">
                                             Em estoque ({product.stock_quantity} disponíveis)
                                         </span>
                                     </>
                                 ) : (
                                     <>
                                         <span className="w-2 h-2 bg-red-500 rounded-full" />
-                                        <span className="text-sm text-red-700">Esgotado</span>
+                                        <span className="text-sm text-red-700 font-medium">Esgotado</span>
                                     </>
                                 )}
                             </div>

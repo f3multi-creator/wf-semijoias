@@ -33,29 +33,22 @@ export function ProductGallery({ images, productName, discount = 0 }: ProductGal
     const thumbnailCount = sortedImages.length;
 
     return (
-        <div className="space-y-4">
-            {/* Hero Image - 16:9 Aspect Ratio */}
-            <div className="relative aspect-video bg-beige overflow-hidden group">
+        <div className="space-y-3">
+            {/* Hero Image - 4:3 Aspect Ratio for larger display */}
+            <div className="relative aspect-[4/3] bg-beige overflow-hidden group rounded-sm">
                 <Image
                     src={selectedImage?.url || "/products/placeholder.jpg"}
                     alt={selectedImage?.alt || productName}
                     fill
-                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    sizes="(max-width: 1024px) 100vw, 60vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                     priority
                 />
 
                 {/* Discount Badge */}
                 {discount > 0 && (
-                    <span className="absolute top-4 left-4 bg-gold text-white text-sm px-3 py-1 tracking-wider font-medium">
+                    <span className="absolute top-4 left-4 bg-gold text-white text-sm px-4 py-1.5 tracking-wider font-medium">
                         -{discount}%
-                    </span>
-                )}
-
-                {/* Hero Shot Badge */}
-                {selectedImage?.is_hero && sortedImages.length > 1 && (
-                    <span className="absolute top-4 right-4 bg-dark/80 text-white text-xs px-2 py-1 tracking-wider uppercase">
-                        Foto Principal
                     </span>
                 )}
 
@@ -94,16 +87,16 @@ export function ProductGallery({ images, productName, discount = 0 }: ProductGal
             {/* Thumbnails Grid */}
             {thumbnailCount > 1 && (
                 <div className={`grid gap-2 ${thumbnailCount <= 4
-                        ? 'grid-cols-4'
-                        : 'grid-cols-3 sm:grid-cols-6'
+                    ? 'grid-cols-4'
+                    : 'grid-cols-3 sm:grid-cols-6'
                     }`}>
                     {sortedImages.map((image, index) => (
                         <button
                             key={index}
                             onClick={() => setSelectedIndex(index)}
                             className={`relative aspect-video bg-beige overflow-hidden border-2 transition-all duration-200 ${index === selectedIndex
-                                    ? 'border-gold ring-2 ring-gold/30'
-                                    : 'border-transparent hover:border-gold/50'
+                                ? 'border-gold ring-2 ring-gold/30'
+                                : 'border-transparent hover:border-gold/50'
                                 }`}
                             aria-label={`Ver imagem ${index + 1}`}
                         >
@@ -136,8 +129,8 @@ export function ProductGallery({ images, productName, discount = 0 }: ProductGal
                             key={index}
                             onClick={() => setSelectedIndex(index)}
                             className={`w-2 h-2 rounded-full transition-all ${index === selectedIndex
-                                    ? 'bg-gold w-4'
-                                    : 'bg-taupe/40 hover:bg-taupe'
+                                ? 'bg-gold w-4'
+                                : 'bg-taupe/40 hover:bg-taupe'
                                 }`}
                             aria-label={`Ir para imagem ${index + 1}`}
                         />
