@@ -53,7 +53,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <article className="group relative">
             <Link href={`/produto/${product.slug}`} className="block">
                 {/* Image Container */}
-                <div className="relative aspect-square overflow-hidden bg-beige mb-4">
+                <div className="relative aspect-video overflow-hidden bg-beige mb-4 rounded-sm">
                     {/* Main Image */}
                     <Image
                         src={product.images[0] || "/placeholder-product.jpg"}
