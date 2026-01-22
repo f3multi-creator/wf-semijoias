@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useCart, formatPrice } from "@/store/cart";
 
 interface AppliedCoupon {
@@ -14,6 +16,9 @@ interface AppliedCoupon {
 
 export default function CheckoutPage() {
     const { items, getSubtotal, getShipping, getTotal, removeItem, updateQuantity } = useCart();
+    const { data: session, status } = useSession();
+    const router = useRouter();
+
     const [step, setStep] = useState<"cart" | "shipping" | "payment">("cart");
     const [isLoading, setIsLoading] = useState(false);
     const [couponCode, setCouponCode] = useState("");
@@ -23,6 +28,14 @@ export default function CheckoutPage() {
     const [shippingCep, setShippingCep] = useState("");
     const [shippingOptions, setShippingOptions] = useState<any[]>([]);
     const [selectedShipping, setSelectedShipping] = useState<any>(null);
+
+    // Verificar se o usuário está autenticado
+    useEffect(() => {
+        if (status === "unauthenticated") {
+            // Redirecionar para login com returnUrl
+            router.push("/login?callbackUrl=/checkout");
+        }
+    }, [status, router]);
 
     const subtotal = getSubtotal();
     const shipping = selectedShipping?.price || getShipping(subtotal);
@@ -133,6 +146,12 @@ export default function CheckoutPage() {
 
     // Iniciar pagamento com Mercado Pago
     const handlePayment = async () => {
+        // Verificar se está autenticado
+        if (!session?.user?.email) {
+            router.push("/login?callbackUrl=/checkout");
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -150,14 +169,24 @@ export default function CheckoutPage() {
                     })),
                     shipping: selectedShipping,
                     discount,
+                    customerEmail: session.user.email,
                 }),
             });
 
             const data = await response.json();
 
+            if (!response.ok) {
+                console.error("Erro na API:", data);
+                alert(data.error || "Erro ao processar pagamento. Tente novamente.");
+                return;
+            }
+
             if (data.initPoint) {
                 // Redireciona para o checkout do Mercado Pago
                 window.location.href = data.initPoint;
+            } else {
+                console.error("Resposta sem initPoint:", data);
+                alert("Erro ao criar link de pagamento. Tente novamente.");
             }
         } catch (error) {
             console.error("Erro ao criar pagamento:", error);
@@ -166,6 +195,18 @@ export default function CheckoutPage() {
             setIsLoading(false);
         }
     };
+
+    // Mostrar loading enquanto verifica autenticação
+    if (status === "loading") {
+        return (
+            <section className="section bg-cream min-h-[60vh] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-taupe">Verificando sua conta...</p>
+                </div>
+            </section>
+        );
+    }
 
     if (items.length === 0) {
         return (
