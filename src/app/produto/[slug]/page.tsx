@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/product/AddToCartButton";
 import { ProductCard } from "@/components/product/ProductCard";
+import { ProductGallery } from "@/components/product/ProductGallery";
 import { getProductBySlug, getProductsByCategory } from "@/lib/db";
 
 // Revalidar a cada 60 segundos
@@ -41,10 +42,19 @@ export default async function ProductPage({ params }: ProductPageProps) {
             category: p.category?.name || "Semijoias",
         }));
 
-    // Preparar imagens do produto
-    const images = product.images?.length > 0
-        ? product.images.sort((a: any, b: any) => a.position - b.position).map((img: any) => img.url)
-        : ["/products/brinco-ametista-1.jpg"];
+    // Preparar imagens do produto para a galeria
+    const galleryImages = product.images?.length > 0
+        ? product.images
+            .sort((a: any, b: any) => a.position - b.position)
+            .map((img: any) => ({
+                url: img.url,
+                alt: img.alt_text || product.name,
+                is_hero: img.is_hero || img.position === 0, // Primeira imagem ou marcada como hero
+            }))
+        : [{ url: "/products/brinco-ametista-1.jpg", alt: product.name, is_hero: true }];
+
+    // Imagem principal para o carrinho (primeira ou hero)
+    const mainImage = galleryImages.find((img: any) => img.is_hero)?.url || galleryImages[0]?.url;
 
     const discount = product.compare_price
         ? Math.round(((product.compare_price - product.price) / product.compare_price) * 100)
@@ -87,45 +97,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <section className="section bg-cream">
                 <div className="container">
                     <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-                        {/* Gallery */}
-                        <div className="space-y-4">
-                            {/* Main Image */}
-                            <div className="relative aspect-square bg-beige overflow-hidden">
-                                <Image
-                                    src={images[0]}
-                                    alt={product.name}
-                                    fill
-                                    sizes="(max-width: 1024px) 100vw, 50vw"
-                                    className="object-cover"
-                                    priority
-                                />
-                                {discount > 0 && (
-                                    <span className="absolute top-4 left-4 bg-gold text-white text-sm px-3 py-1 tracking-wider">
-                                        -{discount}%
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Thumbnails */}
-                            {images.length > 1 && (
-                                <div className="flex gap-2">
-                                    {images.map((image: string, index: number) => (
-                                        <button
-                                            key={index}
-                                            className="relative w-20 h-20 bg-beige overflow-hidden border-2 border-transparent hover:border-gold transition-colors"
-                                        >
-                                            <Image
-                                                src={image}
-                                                alt={`${product.name} - ${index + 1}`}
-                                                fill
-                                                sizes="80px"
-                                                className="object-cover"
-                                            />
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        {/* Gallery - Agora usando componente interativo */}
+                        <ProductGallery
+                            images={galleryImages}
+                            productName={product.name}
+                            discount={discount}
+                        />
 
                         {/* Product Info */}
                         <div className="lg:py-8">
@@ -203,7 +180,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                                     name: product.name,
                                     slug: product.slug,
                                     price: product.price,
-                                    image: images[0],
+                                    image: mainImage,
                                     stock_quantity: product.stock_quantity,
                                 }}
                             />
