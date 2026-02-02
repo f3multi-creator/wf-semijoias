@@ -1,4 +1,12 @@
+"use client";
+
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+
+// Emails autorizados para acessar o admin
+const ADMIN_EMAILS = ["romulofelisberto@gmail.com"];
 
 // Ícones SVG inline para evitar dependências
 const icons = {
@@ -27,6 +35,11 @@ const icons = {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
         </svg>
     ),
+    banners: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+    ),
     back: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -39,12 +52,47 @@ export default function AdminLayout({
 }: {
     children: React.ReactNode;
 }) {
+    const { data: session, status } = useSession();
+    const router = useRouter();
+    const [isAuthorized, setIsAuthorized] = useState(false);
+
+    useEffect(() => {
+        if (status === "loading") return;
+
+        if (status === "unauthenticated") {
+            router.push("/login?callbackUrl=/admin");
+            return;
+        }
+
+        // Verificar se o email está na lista de admins
+        const userEmail = session?.user?.email?.toLowerCase();
+        if (userEmail && ADMIN_EMAILS.includes(userEmail)) {
+            setIsAuthorized(true);
+        } else {
+            // Usuário logado mas não é admin
+            router.push("/");
+        }
+    }, [status, session, router]);
+
+    // Loading state
+    if (status === "loading" || !isAuthorized) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-600">Verificando acesso...</p>
+                </div>
+            </div>
+        );
+    }
+
     const navigation = [
         { name: "Dashboard", href: "/admin", icon: icons.dashboard },
         { name: "Produtos", href: "/admin/produtos", icon: icons.products },
         { name: "Pedidos", href: "/admin/pedidos", icon: icons.orders },
         { name: "Cupons", href: "/admin/cupons", icon: icons.coupons },
         { name: "Frete", href: "/admin/configuracoes", icon: icons.shipping },
+        { name: "Banners", href: "/admin/banners", icon: icons.banners },
     ];
 
     return (
@@ -57,6 +105,9 @@ export default function AdminLayout({
                             WF <span className="text-amber-500">Admin</span>
                         </h1>
                     </Link>
+                    <p className="text-xs text-slate-500 mt-1 truncate">
+                        {session?.user?.email}
+                    </p>
                 </div>
 
                 <nav className="mt-2 px-3">

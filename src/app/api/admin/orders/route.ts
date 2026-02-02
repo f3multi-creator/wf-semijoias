@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendShippingEmail } from "@/lib/email";
 
 // Cliente Supabase Admin
 function getSupabaseAdmin() {
@@ -104,6 +105,21 @@ export async function PUT(request: NextRequest) {
             .single();
 
         if (error) throw error;
+
+        // Disparar email de envio se status é 'shipped' e tem tracking
+        if (data.status === 'shipped' && data.tracking_code && data.customer_email) {
+            sendShippingEmail(
+                data.customer_email,
+                data.customer_name || 'Cliente',
+                data.id,
+                data.tracking_code
+            ).then(() => {
+                console.log(`Email de envio enviado para ${data.customer_email}`);
+            }).catch((emailError) => {
+                console.error('Erro ao enviar email de envio:', emailError);
+            });
+        }
+
         return NextResponse.json(data);
     } catch (error: any) {
         console.error("Erro ao atualizar pedido:", error);
