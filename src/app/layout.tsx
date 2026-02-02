@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { WhatsAppButton } from "@/components/layout/WhatsAppButton";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -78,6 +79,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
           <CartDrawer />
+          <WhatsAppButton />
         </AuthProvider>
       </body>
     </html>
