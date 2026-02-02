@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       ? process.env.MERCADO_PAGO_ACCESS_TOKEN_SANDBOX
       : process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
-    // Remove possíveis caracteres inváidos (\r\n) do token
+    // Remove possíveis caracteres inválidos (\r\n) do token
     accessToken = accessToken?.trim().replace(/[\r\n]/g, '');
 
     if (!accessToken) {
@@ -65,6 +65,11 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Limpa a URL do site de caracteres inválidos
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://wfsemijoias.com.br')
+      .trim()
+      .replace(/[\r\n]/g, '');
 
     // Inicializa o cliente Mercado Pago
     const client = new MercadoPagoConfig({
@@ -147,7 +152,7 @@ export async function POST(request: NextRequest) {
           quantity: item.quantity,
           unit_price: item.price,
           currency_id: 'BRL',
-          picture_url: item.image ? `${process.env.NEXT_PUBLIC_SITE_URL}${item.image}` : undefined,
+          picture_url: item.image ? `${siteUrl}${item.image}` : undefined,
         })),
         shipments: shipping ? {
           cost: finalShippingCost,
@@ -166,12 +171,12 @@ export async function POST(request: NextRequest) {
           default_installments: 1,
         },
         back_urls: {
-          success: `${process.env.NEXT_PUBLIC_SITE_URL}/pedido/sucesso?ref=${externalReference}`,
-          failure: `${process.env.NEXT_PUBLIC_SITE_URL}/pedido/erro?ref=${externalReference}`,
-          pending: `${process.env.NEXT_PUBLIC_SITE_URL}/pedido/pendente?ref=${externalReference}`,
+          success: `${siteUrl}/pedido/sucesso?ref=${externalReference}`,
+          failure: `${siteUrl}/pedido/erro?ref=${externalReference}`,
+          pending: `${siteUrl}/pedido/pendente?ref=${externalReference}`,
         },
         auto_return: 'approved',
-        notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
+        notification_url: `${siteUrl}/api/webhooks/mercadopago`,
         external_reference: externalReference,
         statement_descriptor: 'WF SEMIJOIAS',
         // Expira em 24 horas (para boleto e PIX)
