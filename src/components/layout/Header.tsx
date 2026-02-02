@@ -145,7 +145,7 @@ export function Header() {
                                                 </p>
                                             </div>
                                             <Link
-                                                href="/meus-pedidos"
+                                                href="/minha-conta/pedidos"
                                                 className="block px-4 py-2 text-sm text-dark hover:bg-beige hover:text-gold transition-colors"
                                                 onClick={() => setIsAccountOpen(false)}
                                             >
@@ -252,21 +252,30 @@ export function Header() {
                                 {item.name}
                             </Link>
                         ))}
-                        <div className="flex gap-4 pt-4">
+                        <div className="flex flex-col gap-2 pt-4">
                             {session ? (
-                                <button
-                                    onClick={() => {
-                                        setIsMenuOpen(false);
-                                        signOut();
-                                    }}
-                                    className="btn btn-outline flex-1"
-                                >
-                                    Sair ({session.user?.name?.split(" ")[0]})
-                                </button>
+                                <>
+                                    <Link
+                                        href="/minha-conta/pedidos"
+                                        className="btn btn-primary"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Meus Pedidos
+                                    </Link>
+                                    <button
+                                        onClick={() => {
+                                            setIsMenuOpen(false);
+                                            signOut();
+                                        }}
+                                        className="btn btn-outline"
+                                    >
+                                        Sair ({session.user?.name?.split(" ")[0]})
+                                    </button>
+                                </>
                             ) : (
                                 <Link
                                     href="/login"
-                                    className="btn btn-outline flex-1"
+                                    className="btn btn-outline"
                                     onClick={() => setIsMenuOpen(false)}
                                 >
                                     Entrar
