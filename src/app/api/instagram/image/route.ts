@@ -16,17 +16,33 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        // Busca a imagem do Instagram
+        // Busca a imagem do Instagram com headers bem completos
         const response = await fetch(imageUrl, {
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Accept-Encoding": "gzip, deflate, br",
                 "Referer": "https://www.instagram.com/",
+                "Origin": "https://www.instagram.com",
+                "Sec-Fetch-Dest": "image",
+                "Sec-Fetch-Mode": "no-cors",
+                "Sec-Fetch-Site": "cross-site",
+                "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                "Sec-Ch-Ua-Mobile": "?0",
+                "Sec-Ch-Ua-Platform": '"Windows"',
             },
         });
 
         if (!response.ok) {
-            return NextResponse.json({ error: "Falha ao buscar imagem" }, { status: response.status });
+            console.error(`Erro ao buscar imagem: ${response.status} ${response.statusText}`);
+            // Retorna uma imagem placeholder em caso de erro
+            return new NextResponse(null, {
+                status: 302,
+                headers: {
+                    "Location": "https://via.placeholder.com/400x400?text=WF"
+                }
+            });
         }
 
         const contentType = response.headers.get("content-type") || "image/jpeg";
@@ -42,6 +58,12 @@ export async function GET(request: NextRequest) {
         });
     } catch (error: any) {
         console.error("Erro no proxy de imagem:", error);
-        return NextResponse.json({ error: "Erro ao processar imagem" }, { status: 500 });
+        // Retorna redirect para placeholder em caso de erro
+        return new NextResponse(null, {
+            status: 302,
+            headers: {
+                "Location": "https://via.placeholder.com/400x400?text=WF"
+            }
+        });
     }
 }
