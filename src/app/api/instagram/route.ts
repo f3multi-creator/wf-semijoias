@@ -88,7 +88,7 @@ async function getUserId(username: string): Promise<string | null> {
         }
 
         const data = await response.json();
-        return data.id || data.user_id || data.pk || null;
+        return data.user_id || data.id || data.pk || null;
     } catch (error) {
         console.error("Erro ao buscar user ID:", error);
         return null;
@@ -99,7 +99,7 @@ async function getUserId(username: string): Promise<string | null> {
 async function fetchPosts(userId: string): Promise<InstagramPost[]> {
     try {
         const response = await fetch(
-            `https://${RAPIDAPI_HOST}/user-feeds2?id=${userId}&count=6`,
+            `https://${RAPIDAPI_HOST}/user-feeds2?id=${userId}&count=8`,
             {
                 method: "GET",
                 headers: {
@@ -113,34 +113,36 @@ async function fetchPosts(userId: string): Promise<InstagramPost[]> {
             throw new Error(`RapidAPI error: ${response.status}`);
         }
 
-        const data = await response.json();
+        const responseData = await response.json();
 
-        // Mapeia para nosso formato (adaptar baseado na resposta real da API)
-        const items = data.items || data.data || data.feed?.items || data || [];
+        // Navega até os edges corretos
+        // Estrutura: data.data.user.edge_owner_to_timeline_media.edges
+        const edges = responseData?.data?.user?.edge_owner_to_timeline_media?.edges || [];
 
-        const posts: InstagramPost[] = (Array.isArray(items) ? items : [])
-            .slice(0, 6)
-            .map((post: any, index: number) => {
-                // Tenta pegar a imagem de várias formas possíveis
-                const imageUrl =
-                    post.image_versions2?.candidates?.[0]?.url ||
-                    post.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url ||
-                    post.display_url ||
-                    post.thumbnail_url ||
-                    post.image_url ||
-                    post.media_url ||
-                    "";
+        const posts: InstagramPost[] = edges
+            .slice(0, 8)
+            .map((edge: any, index: number) => {
+                const node = edge.node;
+                if (!node) return null;
 
-                const shortcode = post.code || post.shortcode || "";
+                // Pega a URL da imagem
+                const imageUrl = node.display_url || node.thumbnail_src || "";
+
+                // Pega o shortcode para o permalink
+                const shortcode = node.shortcode || "";
+
+                // Pega a caption
+                const captionEdges = node.edge_media_to_caption?.edges || [];
+                const caption = captionEdges[0]?.node?.text || "";
 
                 return {
-                    id: post.id || post.pk || `post-${index}`,
+                    id: node.id || `post-${index}`,
                     imageUrl: imageUrl,
                     permalink: shortcode ? `https://instagram.com/p/${shortcode}/` : `https://instagram.com/${INSTAGRAM_USERNAME}/`,
-                    caption: post.caption?.text || post.caption || ""
+                    caption: caption
                 };
             })
-            .filter((post: InstagramPost) => post.imageUrl);
+            .filter((post: InstagramPost | null): post is InstagramPost => post !== null && post.imageUrl !== "");
 
         return posts;
     } catch (error) {
