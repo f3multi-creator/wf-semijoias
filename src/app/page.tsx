@@ -152,7 +152,7 @@ export default async function HomePage() {
       </section>
 
       {/* Instagram Feed */}
-      <InstagramFeed username="wfsemijoias" count={6} />
+      <InstagramFeed username="wfsemijoias" />
 
       {/* Trust Badges */}
       <section className="py-12 bg-beige">
