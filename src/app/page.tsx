@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ProductCard } from "@/components/product/ProductCard";
 import { getFeaturedProducts, getCategories } from "@/lib/db";
 import { InstagramFeed } from "@/components/instagram/InstagramFeed";
+import { HeroBanner } from "@/components/home/HeroBanner";
 
 // Revalidar a cada 60 segundos
 export const revalidate = 60;
@@ -36,47 +37,8 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative h-[80vh] min-h-[600px] flex items-center overflow-hidden">
-        {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-dark/60 to-dark/30">
-          <div className="absolute inset-0 bg-beige" />
-          {/* Placeholder - será substituído por imagem real */}
-          <div className="absolute inset-0 bg-gradient-to-br from-nude via-beige to-sand opacity-50" />
-        </div>
-
-        {/* Content */}
-        <div className="container relative z-10">
-          <div className="max-w-2xl animate-fadeIn">
-            <p className="text-gold uppercase tracking-[0.3em] text-sm mb-4">
-              Nova Coleção
-            </p>
-            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-dark mb-6 leading-tight">
-              Beleza que{" "}
-              <span className="text-gold italic">transforma</span>
-            </h1>
-            <p className="text-brown text-lg md:text-xl mb-8 leading-relaxed">
-              Semijoias artesanais feitas à mão com pedras brasileiras premium.
-              Cada peça conta uma história única.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/colecoes" className="btn btn-primary">
-                Ver Coleção
-              </Link>
-              <Link href="/sobre" className="btn btn-outline">
-                Nossa História
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Decorative elements */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-taupe animate-bounce">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
-        </div>
-      </section>
+      {/* Hero Section com Galeria */}
+      <HeroBanner />
 
       {/* Categories Grid */}
       <section className="section bg-cream">

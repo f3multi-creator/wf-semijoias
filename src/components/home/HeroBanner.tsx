@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -10,12 +10,26 @@ interface Banner {
     alt: string;
 }
 
+// Hero shots locais
+const LOCAL_HERO_IMAGES: Banner[] = [
+    { id: "hero-1", url: "/hero/hero-1.jpg", alt: "WF Semijoias - Coleção Exclusiva" },
+    { id: "hero-2", url: "/hero/hero-2.jpg", alt: "WF Semijoias - Joias Artesanais" },
+    { id: "hero-3", url: "/hero/hero-3.jpg", alt: "WF Semijoias - Pedras Brasileiras" },
+    { id: "hero-4", url: "/hero/hero-4.jpg", alt: "WF Semijoias - Beleza Única" },
+    { id: "hero-5", url: "/hero/hero-5.jpg", alt: "WF Semijoias - Elegância Natural" },
+];
+
 export function HeroBanner() {
-    const [banners, setBanners] = useState<Banner[]>([]);
-    const [currentIndex, setCurrentIndex] = useState(0);
+    // Gerar índice aleatório inicial (apenas no cliente)
+    const [randomStartIndex] = useState(() =>
+        Math.floor(Math.random() * LOCAL_HERO_IMAGES.length)
+    );
+
+    const [banners, setBanners] = useState<Banner[]>(LOCAL_HERO_IMAGES);
+    const [currentIndex, setCurrentIndex] = useState(randomStartIndex);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Buscar banners da API
+    // Buscar banners da API (se houver, sobrescreve os locais)
     useEffect(() => {
         async function fetchBanners() {
             try {
@@ -23,9 +37,12 @@ export function HeroBanner() {
                 const data = await response.json();
                 if (data.banners && data.banners.length > 0) {
                     setBanners(data.banners);
+                    // Novo índice aleatório para banners da API
+                    setCurrentIndex(Math.floor(Math.random() * data.banners.length));
                 }
             } catch (error) {
                 console.error("Erro ao carregar banners:", error);
+                // Mantém os locais em caso de erro
             } finally {
                 setIsLoading(false);
             }
@@ -57,14 +74,7 @@ export function HeroBanner() {
         setCurrentIndex((prev) => (prev + 1) % banners.length);
     }, [banners.length]);
 
-    // Se não há banners, mostrar placeholder ou nada
-    if (isLoading) {
-        return (
-            <section className="relative h-[60vh] min-h-[500px] bg-beige flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin" />
-            </section>
-        );
-    }
+    // Com imagens locais, não precisamos de loading state
 
     if (banners.length === 0) {
         // Fallback para banner padrão
@@ -166,8 +176,8 @@ export function HeroBanner() {
                             key={index}
                             onClick={() => goToSlide(index)}
                             className={`w-2 h-2 rounded-full transition-all ${index === currentIndex
-                                    ? "bg-gold w-6"
-                                    : "bg-white/50 hover:bg-white"
+                                ? "bg-gold w-6"
+                                : "bg-white/50 hover:bg-white"
                                 }`}
                             aria-label={`Ir para banner ${index + 1}`}
                         />
