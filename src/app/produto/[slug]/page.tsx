@@ -5,6 +5,7 @@ import { AddToCartButton } from "@/components/product/AddToCartButton";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { getProductBySlug, getProductsByCategory } from "@/lib/db";
+import { CustomOrderCTA } from "@/components/product/CustomOrderCTA";
 
 const WHATSAPP_NUMBER = "5527999201077";
 
@@ -73,7 +74,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     const whatsappOrderUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
         `Olá! Vim pelo site da WF Semijoias e gostaria de encomendar o produto "${product.name}". Podem me ajudar?`
     )}`;
-    
+
     const whatsappQuestionUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
         `Olá! Vim pelo site da WF Semijoias e tenho uma dúvida sobre o produto "${product.name}".`
     )}`;
@@ -166,7 +167,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                                     <>
                                         <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                                         <span className="text-sm text-green-700 font-medium">
-                                            Em estoque ({product.stock_quantity} disponíveis)
+                                            Em estoque
                                         </span>
                                     </>
                                 ) : (
@@ -193,7 +194,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                                                     Este produto está disponível sob encomenda
                                                 </p>
                                                 <p className="text-amber-700 text-sm mt-1">
-                                                    Como nossas peças são artesanais, podemos produzir uma exclusivamente para você! 
+                                                    Como nossas peças são artesanais, podemos produzir uma exclusivamente para você!
                                                     Entre em contato pelo WhatsApp para saber prazo e condições.
                                                 </p>
                                             </div>
@@ -258,7 +259,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                                     <div>
                                         <p className="text-brown text-sm font-medium">Peça Artesanal</p>
                                         <p className="text-brown/80 text-sm mt-1">
-                                            Cada peça é única e feita à mão com muito carinho. 
+                                            Cada peça é única e feita à mão com muito carinho.
                                             Podemos criar peças personalizadas especialmente para você!
                                         </p>
                                     </div>
@@ -275,6 +276,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     </div>
                 </div>
             </section>
+
+            {/* Seção de Exclusividade */}
+            <CustomOrderCTA productName={product.name} />
 
             {/* Related Products */}
             {relatedProducts.length > 0 && (
