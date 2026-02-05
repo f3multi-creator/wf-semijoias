@@ -1,89 +1,200 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 /**
- * API para buscar posts do Instagram
+ * API para buscar posts do Instagram via RapidAPI (Instagram Looter)
  * 
- * Para configurar:
- * 
- * OPÇÃO 1: Instagram Graph API (oficial)
- * - Crie um app em developers.facebook.com
- * - Adicione Instagram Basic Display API
- * - Configure INSTAGRAM_ACCESS_TOKEN no .env
- * 
- * OPÇÃO 2: Behold.so (mais fácil)
- * - Crie conta em behold.so
- * - Conecte seu Instagram
- * - Configure BEHOLD_FEED_ID no .env
- * 
- * OPÇÃO 3: Feed manual
- * - Adicione INSTAGRAM_POSTS no .env como JSON
+ * Fluxo:
+ * 1. Busca user ID pelo username
+ * 2. Busca posts pelo user ID
+ * 3. Cache no Supabase (atualiza 1x por dia)
  */
 
-export async function GET(request: NextRequest) {
-    const { searchParams } = new URL(request.url);
-    const count = parseInt(searchParams.get("count") || "6");
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || "1188e2b871msh54a1b0c801384ccp10678fjsn1d8c17bc3109";
+const RAPIDAPI_HOST = "instagram-looter2.p.rapidapi.com";
+const INSTAGRAM_USERNAME = "wfsemijoias";
+const CACHE_DURATION_HOURS = 24;
 
-    // Opção 1: Instagram Graph API
-    const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN?.trim();
-    if (accessToken) {
-        try {
-            const response = await fetch(
-                `https://graph.instagram.com/me/media?fields=id,caption,media_url,permalink,media_type&access_token=${accessToken}&limit=${count}`
-            );
+interface InstagramPost {
+    id: string;
+    imageUrl: string;
+    permalink: string;
+    caption?: string;
+}
 
-            if (response.ok) {
-                const data = await response.json();
-                const posts = data.data
-                    ?.filter((post: any) => post.media_type !== "VIDEO")
-                    ?.map((post: any) => ({
-                        id: post.id,
-                        permalink: post.permalink,
-                        media_url: post.media_url,
-                        caption: post.caption,
-                    }));
+// Supabase client para cache
+function getSupabaseClient() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-                return NextResponse.json(posts || []);
+    if (!url || !key) return null;
+    return createClient(url, key);
+}
+
+// Verifica se o cache ainda é válido
+async function getCachedPosts(supabase: any): Promise<{ posts: InstagramPost[], userId: string } | null> {
+    try {
+        const { data, error } = await supabase
+            .from("instagram_cache")
+            .select("*")
+            .eq("id", "instagram_feed")
+            .single();
+
+        if (error || !data) return null;
+
+        const cacheAge = Date.now() - new Date(data.updated_at).getTime();
+        const maxAge = CACHE_DURATION_HOURS * 60 * 60 * 1000;
+
+        if (cacheAge > maxAge) return null;
+
+        return { posts: data.posts || [], userId: data.user_id || "" };
+    } catch {
+        return null;
+    }
+}
+
+// Salva posts no cache
+async function saveCachedPosts(supabase: any, posts: InstagramPost[], userId: string) {
+    try {
+        await supabase
+            .from("instagram_cache")
+            .upsert({
+                id: "instagram_feed",
+                posts: posts,
+                user_id: userId,
+                updated_at: new Date().toISOString()
+            });
+    } catch (error) {
+        console.error("Erro ao salvar cache:", error);
+    }
+}
+
+// Busca user ID pelo username
+async function getUserId(username: string): Promise<string | null> {
+    try {
+        const response = await fetch(
+            `https://${RAPIDAPI_HOST}/id?username=${username}`,
+            {
+                method: "GET",
+                headers: {
+                    "x-rapidapi-key": RAPIDAPI_KEY,
+                    "x-rapidapi-host": RAPIDAPI_HOST
+                }
             }
-        } catch (error) {
-            console.error("Erro ao buscar Instagram:", error);
+        );
+
+        if (!response.ok) {
+            throw new Error(`RapidAPI error: ${response.status}`);
         }
+
+        const data = await response.json();
+        return data.id || data.user_id || data.pk || null;
+    } catch (error) {
+        console.error("Erro ao buscar user ID:", error);
+        return null;
     }
+}
 
-    // Opção 2: Behold.so
-    const beholdFeedId = process.env.BEHOLD_FEED_ID?.trim();
-    if (beholdFeedId) {
-        try {
-            const response = await fetch(
-                `https://feeds.behold.so/${beholdFeedId}`
-            );
-
-            if (response.ok) {
-                const data = await response.json();
-                const posts = data.slice(0, count).map((post: any) => ({
-                    id: post.id,
-                    permalink: post.permalink,
-                    media_url: post.mediaUrl,
-                    caption: post.caption,
-                }));
-
-                return NextResponse.json(posts);
+// Busca posts pelo user ID
+async function fetchPosts(userId: string): Promise<InstagramPost[]> {
+    try {
+        const response = await fetch(
+            `https://${RAPIDAPI_HOST}/user-feeds2?id=${userId}&count=6`,
+            {
+                method: "GET",
+                headers: {
+                    "x-rapidapi-key": RAPIDAPI_KEY,
+                    "x-rapidapi-host": RAPIDAPI_HOST
+                }
             }
-        } catch (error) {
-            console.error("Erro ao buscar Behold:", error);
-        }
-    }
+        );
 
-    // Opção 3: Posts manuais do .env
-    const manualPosts = process.env.INSTAGRAM_POSTS?.trim();
-    if (manualPosts) {
-        try {
-            const posts = JSON.parse(manualPosts);
-            return NextResponse.json(posts.slice(0, count));
-        } catch (error) {
-            console.error("Erro ao parsear INSTAGRAM_POSTS:", error);
+        if (!response.ok) {
+            throw new Error(`RapidAPI error: ${response.status}`);
         }
-    }
 
-    // Nenhuma configuração encontrada
-    return NextResponse.json([]);
+        const data = await response.json();
+
+        // Mapeia para nosso formato (adaptar baseado na resposta real da API)
+        const items = data.items || data.data || data.feed?.items || data || [];
+
+        const posts: InstagramPost[] = (Array.isArray(items) ? items : [])
+            .slice(0, 6)
+            .map((post: any, index: number) => {
+                // Tenta pegar a imagem de várias formas possíveis
+                const imageUrl =
+                    post.image_versions2?.candidates?.[0]?.url ||
+                    post.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url ||
+                    post.display_url ||
+                    post.thumbnail_url ||
+                    post.image_url ||
+                    post.media_url ||
+                    "";
+
+                const shortcode = post.code || post.shortcode || "";
+
+                return {
+                    id: post.id || post.pk || `post-${index}`,
+                    imageUrl: imageUrl,
+                    permalink: shortcode ? `https://instagram.com/p/${shortcode}/` : `https://instagram.com/${INSTAGRAM_USERNAME}/`,
+                    caption: post.caption?.text || post.caption || ""
+                };
+            })
+            .filter((post: InstagramPost) => post.imageUrl);
+
+        return posts;
+    } catch (error) {
+        console.error("Erro ao buscar posts:", error);
+        return [];
+    }
+}
+
+export async function GET() {
+    try {
+        const supabase = getSupabaseClient();
+
+        // Tenta buscar do cache primeiro
+        if (supabase) {
+            const cached = await getCachedPosts(supabase);
+            if (cached && cached.posts.length > 0) {
+                return NextResponse.json({
+                    posts: cached.posts,
+                    source: "cache",
+                    count: cached.posts.length
+                });
+            }
+        }
+
+        // Se não tem cache válido, busca da API
+        // Primeiro pega o user ID
+        const userId = await getUserId(INSTAGRAM_USERNAME);
+
+        if (!userId) {
+            return NextResponse.json({
+                error: "Não foi possível obter o user ID",
+                posts: []
+            }, { status: 500 });
+        }
+
+        // Depois busca os posts
+        const posts = await fetchPosts(userId);
+
+        if (posts.length > 0 && supabase) {
+            // Salva no cache
+            await saveCachedPosts(supabase, posts, userId);
+        }
+
+        return NextResponse.json({
+            posts: posts,
+            source: "api",
+            count: posts.length,
+            userId: userId
+        });
+    } catch (error: any) {
+        console.error("Erro na API Instagram:", error);
+        return NextResponse.json(
+            { error: "Erro ao buscar posts", posts: [] },
+            { status: 500 }
+        );
+    }
 }
