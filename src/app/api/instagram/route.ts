@@ -8,6 +8,8 @@ import { createClient } from "@supabase/supabase-js";
  * 1. Busca user ID pelo username
  * 2. Busca posts pelo user ID
  * 3. Cache no Supabase (atualiza 1x por dia)
+ * 
+ * REGRA: SEMPRE pula os 3 primeiros posts (fixados)
  */
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || "1188e2b871msh54a1b0c801384ccp10678fjsn1d8c17bc3109";
@@ -15,11 +17,21 @@ const RAPIDAPI_HOST = "instagram-looter2.p.rapidapi.com";
 const INSTAGRAM_USERNAME = "wfsemijoias";
 const CACHE_DURATION_HOURS = 24;
 
+// Configuração: quantos posts fixados pular
+const SKIP_PINNED_POSTS = 3;
+const POSTS_TO_SHOW = 8;
+
 interface InstagramPost {
     id: string;
     imageUrl: string;
     permalink: string;
     caption?: string;
+}
+
+interface InstagramData {
+    posts: InstagramPost[];
+    profilePicUrl: string;
+    userId: string;
 }
 
 // Supabase client para cache
@@ -32,7 +44,7 @@ function getSupabaseClient() {
 }
 
 // Verifica se o cache ainda é válido
-async function getCachedPosts(supabase: any): Promise<{ posts: InstagramPost[], userId: string } | null> {
+async function getCachedData(supabase: any): Promise<InstagramData | null> {
     try {
         const { data, error } = await supabase
             .from("instagram_cache")
@@ -47,21 +59,26 @@ async function getCachedPosts(supabase: any): Promise<{ posts: InstagramPost[], 
 
         if (cacheAge > maxAge) return null;
 
-        return { posts: data.posts || [], userId: data.user_id || "" };
+        return {
+            posts: data.posts || [],
+            profilePicUrl: data.profile_pic_url || "",
+            userId: data.user_id || ""
+        };
     } catch {
         return null;
     }
 }
 
-// Salva posts no cache
-async function saveCachedPosts(supabase: any, posts: InstagramPost[], userId: string) {
+// Salva dados no cache
+async function saveCachedData(supabase: any, data: InstagramData) {
     try {
         await supabase
             .from("instagram_cache")
             .upsert({
                 id: "instagram_feed",
-                posts: posts,
-                user_id: userId,
+                posts: data.posts,
+                user_id: data.userId,
+                profile_pic_url: data.profilePicUrl,
                 updated_at: new Date().toISOString()
             });
     } catch (error) {
@@ -95,11 +112,14 @@ async function getUserId(username: string): Promise<string | null> {
     }
 }
 
-// Busca posts pelo user ID
-async function fetchPosts(userId: string): Promise<InstagramPost[]> {
+// Busca posts pelo user ID (pulando os fixados)
+async function fetchPostsAndProfile(userId: string): Promise<{ posts: InstagramPost[], profilePicUrl: string }> {
     try {
+        // Buscar mais posts para poder pular os fixados
+        const totalToFetch = SKIP_PINNED_POSTS + POSTS_TO_SHOW;
+
         const response = await fetch(
-            `https://${RAPIDAPI_HOST}/user-feeds2?id=${userId}&count=8`,
+            `https://${RAPIDAPI_HOST}/user-feeds2?id=${userId}&count=${totalToFetch}`,
             {
                 method: "GET",
                 headers: {
@@ -115,12 +135,18 @@ async function fetchPosts(userId: string): Promise<InstagramPost[]> {
 
         const responseData = await response.json();
 
-        // Navega até os edges corretos
-        // Estrutura: data.data.user.edge_owner_to_timeline_media.edges
-        const edges = responseData?.data?.user?.edge_owner_to_timeline_media?.edges || [];
+        // Navega até os dados do usuário
+        const userData = responseData?.data?.user;
+        const edges = userData?.edge_owner_to_timeline_media?.edges || [];
 
-        const posts: InstagramPost[] = edges
-            .slice(0, 8)
+        // Pega a foto de perfil do usuário
+        const profilePicUrl = userData?.profile_pic_url || "";
+
+        // REGRA: SEMPRE pula os 3 primeiros posts (fixados)
+        const nonPinnedEdges = edges.slice(SKIP_PINNED_POSTS);
+
+        const posts: InstagramPost[] = nonPinnedEdges
+            .slice(0, POSTS_TO_SHOW)
             .map((edge: any, index: number) => {
                 const node = edge.node;
                 if (!node) return null;
@@ -144,10 +170,10 @@ async function fetchPosts(userId: string): Promise<InstagramPost[]> {
             })
             .filter((post: InstagramPost | null): post is InstagramPost => post !== null && post.imageUrl !== "");
 
-        return posts;
+        return { posts, profilePicUrl };
     } catch (error) {
         console.error("Erro ao buscar posts:", error);
-        return [];
+        return { posts: [], profilePicUrl: "" };
     }
 }
 
@@ -157,10 +183,11 @@ export async function GET() {
 
         // Tenta buscar do cache primeiro
         if (supabase) {
-            const cached = await getCachedPosts(supabase);
+            const cached = await getCachedData(supabase);
             if (cached && cached.posts.length > 0) {
                 return NextResponse.json({
                     posts: cached.posts,
+                    profilePicUrl: cached.profilePicUrl,
                     source: "cache",
                     count: cached.posts.length
                 });
@@ -174,20 +201,22 @@ export async function GET() {
         if (!userId) {
             return NextResponse.json({
                 error: "Não foi possível obter o user ID",
-                posts: []
+                posts: [],
+                profilePicUrl: ""
             }, { status: 500 });
         }
 
-        // Depois busca os posts
-        const posts = await fetchPosts(userId);
+        // Depois busca os posts e a foto de perfil
+        const { posts, profilePicUrl } = await fetchPostsAndProfile(userId);
 
         if (posts.length > 0 && supabase) {
             // Salva no cache
-            await saveCachedPosts(supabase, posts, userId);
+            await saveCachedData(supabase, { posts, profilePicUrl, userId });
         }
 
         return NextResponse.json({
             posts: posts,
+            profilePicUrl: profilePicUrl,
             source: "api",
             count: posts.length,
             userId: userId
@@ -195,7 +224,7 @@ export async function GET() {
     } catch (error: any) {
         console.error("Erro na API Instagram:", error);
         return NextResponse.json(
-            { error: "Erro ao buscar posts", posts: [] },
+            { error: "Erro ao buscar posts", posts: [], profilePicUrl: "" },
             { status: 500 }
         );
     }

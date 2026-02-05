@@ -15,11 +15,9 @@ interface InstagramFeedProps {
 
 // Função para criar URL do proxy de imagens
 function getProxiedImageUrl(originalUrl: string): string {
+    if (!originalUrl) return "";
     return `/api/instagram/image?url=${encodeURIComponent(originalUrl)}`;
 }
-
-// URL da foto de perfil do Instagram
-const PROFILE_PIC_URL = "https://instagram.fmil1-1.fna.fbcdn.net/v/t51.2885-19/484532386_2101684126973367_4628335748203691471_n.jpg?stp=dst-jpg_e0_s150x150_tt6&_nc_ht=instagram.fmil1-1.fna.fbcdn.net&_nc_cat=103&_nc_ohc=hMUkBY9xx1QQ7kNvwGsd_i4&edm=APU89FABAAAA&ccb=7-5&oh=00_Afs54w_3XdaHMDgv9M_t0WDgcFWRoMdKguBklql1jfh1PA&oe=698AA50E&_nc_sid=bc0c2c";
 
 // Dados do perfil
 const PROFILE = {
@@ -32,6 +30,7 @@ const PROFILE = {
 
 export function InstagramFeed({ username = "wfsemijoias" }: InstagramFeedProps) {
     const [posts, setPosts] = useState<InstagramPost[]>([]);
+    const [profilePicUrl, setProfilePicUrl] = useState<string>("");
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -42,6 +41,9 @@ export function InstagramFeed({ username = "wfsemijoias" }: InstagramFeedProps) 
 
                 if (data.posts && data.posts.length > 0) {
                     setPosts(data.posts.slice(0, 8));
+                }
+                if (data.profilePicUrl) {
+                    setProfilePicUrl(data.profilePicUrl);
                 }
             } catch (e) {
                 console.error("Erro ao carregar Instagram:", e);
@@ -67,11 +69,17 @@ export function InstagramFeed({ username = "wfsemijoias" }: InstagramFeedProps) 
                             rel="noopener noreferrer"
                             className="block w-20 h-20 md:w-24 md:h-24 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600"
                         >
-                            <img
-                                src={getProxiedImageUrl(PROFILE_PIC_URL)}
-                                alt={PROFILE.name}
-                                className="w-full h-full rounded-full object-cover border-2 border-white"
-                            />
+                            {profilePicUrl ? (
+                                <img
+                                    src={getProxiedImageUrl(profilePicUrl)}
+                                    alt={PROFILE.name}
+                                    className="w-full h-full rounded-full object-cover border-2 border-white"
+                                />
+                            ) : (
+                                <div className="w-full h-full rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
+                                    <span className="text-2xl font-bold text-gray-400">WF</span>
+                                </div>
+                            )}
                         </a>
                     </div>
 
