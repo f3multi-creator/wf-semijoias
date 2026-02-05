@@ -5,8 +5,8 @@ import { createClient } from "@supabase/supabase-js";
  * API para buscar posts do Instagram via RapidAPI (Instagram Looter)
  * 
  * Fluxo:
- * 1. Busca user ID pelo username
- * 2. Busca posts pelo user ID
+ * 1. Busca user ID e foto de perfil via /profile2
+ * 2. Busca posts pelo user ID via /user-feeds2
  * 3. Cache no Supabase (atualiza 1x por dia)
  * 
  * REGRA: SEMPRE pula os 3 primeiros posts (fixados)
@@ -86,11 +86,11 @@ async function saveCachedData(supabase: any, data: InstagramData) {
     }
 }
 
-// Busca user ID pelo username
-async function getUserId(username: string): Promise<string | null> {
+// Busca dados do perfil via /profile2 (inclui user ID e foto de perfil)
+async function getProfileData(username: string): Promise<{ userId: string, profilePicUrl: string } | null> {
     try {
         const response = await fetch(
-            `https://${RAPIDAPI_HOST}/id?username=${username}`,
+            `https://${RAPIDAPI_HOST}/profile2?username=${username}`,
             {
                 method: "GET",
                 headers: {
@@ -105,15 +105,24 @@ async function getUserId(username: string): Promise<string | null> {
         }
 
         const data = await response.json();
-        return data.user_id || data.id || data.pk || null;
+
+        // ID pode estar em pk ou id
+        const userId = data.pk || data.id || null;
+
+        // Foto de perfil pode estar em profile_pic_url ou hd_profile_pic_url_info.url
+        const profilePicUrl = data.hd_profile_pic_url_info?.url || data.profile_pic_url || "";
+
+        if (!userId) return null;
+
+        return { userId, profilePicUrl };
     } catch (error) {
-        console.error("Erro ao buscar user ID:", error);
+        console.error("Erro ao buscar dados do perfil:", error);
         return null;
     }
 }
 
 // Busca posts pelo user ID (pulando os fixados)
-async function fetchPostsAndProfile(userId: string): Promise<{ posts: InstagramPost[], profilePicUrl: string }> {
+async function fetchPosts(userId: string): Promise<InstagramPost[]> {
     try {
         // Buscar mais posts para poder pular os fixados
         const totalToFetch = SKIP_PINNED_POSTS + POSTS_TO_SHOW;
@@ -135,15 +144,16 @@ async function fetchPostsAndProfile(userId: string): Promise<{ posts: InstagramP
 
         const responseData = await response.json();
 
-        // Navega até os dados do usuário
-        const userData = responseData?.data?.user;
-        const edges = userData?.edge_owner_to_timeline_media?.edges || [];
+        // Navega até os edges
+        const edges = responseData?.data?.user?.edge_owner_to_timeline_media?.edges || [];
 
-        // Pega a foto de perfil do usuário
-        const profilePicUrl = userData?.profile_pic_url || "";
+        console.log(`Total de posts recebidos: ${edges.length}`);
+        console.log(`Pulando ${SKIP_PINNED_POSTS} posts fixados`);
 
         // REGRA: SEMPRE pula os 3 primeiros posts (fixados)
         const nonPinnedEdges = edges.slice(SKIP_PINNED_POSTS);
+
+        console.log(`Posts após pular fixados: ${nonPinnedEdges.length}`);
 
         const posts: InstagramPost[] = nonPinnedEdges
             .slice(0, POSTS_TO_SHOW)
@@ -170,19 +180,22 @@ async function fetchPostsAndProfile(userId: string): Promise<{ posts: InstagramP
             })
             .filter((post: InstagramPost | null): post is InstagramPost => post !== null && post.imageUrl !== "");
 
-        return { posts, profilePicUrl };
+        return posts;
     } catch (error) {
         console.error("Erro ao buscar posts:", error);
-        return { posts: [], profilePicUrl: "" };
+        return [];
     }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        const url = new URL(request.url);
+        const forceRefresh = url.searchParams.get("refresh") === "true";
+
         const supabase = getSupabaseClient();
 
-        // Tenta buscar do cache primeiro
-        if (supabase) {
+        // Tenta buscar do cache primeiro (se não forçar refresh)
+        if (supabase && !forceRefresh) {
             const cached = await getCachedData(supabase);
             if (cached && cached.posts.length > 0) {
                 return NextResponse.json({
@@ -194,20 +207,22 @@ export async function GET() {
             }
         }
 
-        // Se não tem cache válido, busca da API
-        // Primeiro pega o user ID
-        const userId = await getUserId(INSTAGRAM_USERNAME);
+        // Se não tem cache válido ou forçamos refresh, busca da API
+        // Primeiro pega dados do perfil (user ID + foto)
+        const profileData = await getProfileData(INSTAGRAM_USERNAME);
 
-        if (!userId) {
+        if (!profileData) {
             return NextResponse.json({
-                error: "Não foi possível obter o user ID",
+                error: "Não foi possível obter dados do perfil",
                 posts: [],
                 profilePicUrl: ""
             }, { status: 500 });
         }
 
-        // Depois busca os posts e a foto de perfil
-        const { posts, profilePicUrl } = await fetchPostsAndProfile(userId);
+        const { userId, profilePicUrl } = profileData;
+
+        // Depois busca os posts
+        const posts = await fetchPosts(userId);
 
         if (posts.length > 0 && supabase) {
             // Salva no cache
@@ -217,9 +232,10 @@ export async function GET() {
         return NextResponse.json({
             posts: posts,
             profilePicUrl: profilePicUrl,
-            source: "api",
+            source: forceRefresh ? "api-forced" : "api",
             count: posts.length,
-            userId: userId
+            userId: userId,
+            skippedPinnedPosts: SKIP_PINNED_POSTS
         });
     } catch (error: any) {
         console.error("Erro na API Instagram:", error);
