@@ -123,7 +123,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         </div>
 
                         {/* Product Info */}
-                        <div className="lg:py-4">
+                        <div className="lg:py-4 lg:sticky lg:top-24 self-start">
                             {/* Category */}
                             <p className="text-gold uppercase tracking-[0.2em] text-sm mb-3">
                                 {product.category?.name || 'Semijoias'}

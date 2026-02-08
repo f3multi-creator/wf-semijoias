@@ -40,7 +40,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: 'Bem-vinda à WF Semijoias! ✨',
+      subject: 'Bem-vinda à WF Semijoias!',
       html: `
         <!DOCTYPE html>
         <html>
@@ -51,7 +51,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
               <div class="logo">WF Semijoias</div>
             </div>
             <div class="content">
-              <h2>Olá, ${name}! 💎</h2>
+              <h2>Olá, ${name}!</h2>
               <p>Seja muito bem-vinda à WF Semijoias!</p>
               <p>Sua conta foi criada com sucesso. Agora você pode:</p>
               <ul>
@@ -143,7 +143,7 @@ export async function sendOrderConfirmationEmail(
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Pedido #${orderId.slice(0, 8).toUpperCase()} confirmado! 🎉`,
+      subject: `Pedido #${orderId.slice(0, 8).toUpperCase()} confirmado!`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -154,7 +154,7 @@ export async function sendOrderConfirmationEmail(
               <div class="logo">WF Semijoias</div>
             </div>
             <div class="content">
-              <h2>Pedido Confirmado! 🎉</h2>
+              <h2>Pedido Confirmado!</h2>
               <p>Olá, ${name}!</p>
               <p>Seu pedido <strong>#${orderId.slice(0, 8).toUpperCase()}</strong> foi recebido com sucesso.</p>
               
@@ -208,7 +208,7 @@ export async function sendShippingEmail(
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `Seu pedido foi enviado! 📦 - #${orderId.slice(0, 8).toUpperCase()}`,
+      subject: `Seu pedido foi enviado! - #${orderId.slice(0, 8).toUpperCase()}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -219,7 +219,7 @@ export async function sendShippingEmail(
               <div class="logo">WF Semijoias</div>
             </div>
             <div class="content">
-              <h2>Pedido Enviado! 📦</h2>
+              <h2>Pedido Enviado!</h2>
               <p>Olá, ${name}!</p>
               <p>Ótima notícia! Seu pedido <strong>#${orderId.slice(0, 8).toUpperCase()}</strong> está a caminho.</p>
               
@@ -243,6 +243,74 @@ export async function sendShippingEmail(
     return { success: true };
   } catch (error) {
     console.error('Erro ao enviar email de envio:', error);
+    return { success: false, error };
+  }
+}
+
+// Email de alerta de estoque baixo (Admin)
+export async function sendStockAlertEmail(
+  products: Array<{ name: string; stock: number; slug: string }>
+) {
+  const resend = getResend();
+  if (!resend) return { success: false, error: 'Email service not configured' };
+
+  // Admin email - pode ser configurado via env ou usar o mesmo do remetente por enquanto
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'contato@wfsemijoias.com.br';
+
+  const productsHtml = products.map(p => `
+    <tr>
+      <td style="padding: 10px; border-bottom: 1px solid #eee;">${p.name}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center; color: #b8860b; font-weight: bold;">${p.stock}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
+        <a href="${SITE_URL}/produto/${p.slug}" style="color: #1a1a1a; text-decoration: underline;">Ver</a>
+      </td>
+    </tr>
+  `).join('');
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `⚠️ Alerta de Estoque Baixo - ${products.length} produtos`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>${emailStyles}</head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="logo">WF Semijoias</div>
+            </div>
+            <div class="content">
+              <h2>Alerta de Estoque</h2>
+              <p>Os seguintes produtos estão com estoque baixo (menos de 5 unidades):</p>
+              
+              <table style="width: 100%; margin: 20px 0;">
+                <thead>
+                  <tr style="background: #f5f5f5;">
+                    <th style="padding: 10px; text-align: left;">Produto</th>
+                    <th style="padding: 10px; text-align: center;">Estoque</th>
+                    <th style="padding: 10px; text-align: right;">Link</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${productsHtml}
+                </tbody>
+              </table>
+              
+              <a href="${SITE_URL}/admin/produtos" class="button">Gerenciar Estoque</a>
+            </div>
+            <div class="footer">
+              <p>Sistema de Monitoramento WF Semijoias</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao enviar alerta de estoque:', error);
     return { success: false, error };
   }
 }

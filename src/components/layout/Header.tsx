@@ -15,6 +15,7 @@ export function Header() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState("");
+    const [suggestions, setSuggestions] = useState<any[]>([]);
 
     const handleSearch = () => {
         if (searchTerm.trim().length > 1) {
@@ -366,13 +367,24 @@ export function Header() {
 
             {/* Search Modal */}
             {isSearchOpen && (
-                <div className="absolute top-full left-0 w-full bg-cream border-b border-beige p-4 animate-fadeIn">
+                <div className="absolute top-full left-0 w-full bg-cream border-b border-beige p-4 animate-fadeIn z-50">
                     <div className="container">
-                        <div className="relative">
+                        <div className="relative max-w-3xl mx-auto">
                             <input
                                 type="text"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    // Debounce logic would be better, but for simplicity:
+                                    if (e.target.value.length > 2) {
+                                        fetch(`/api/products/search?q=${e.target.value}`)
+                                            .then(res => res.json())
+                                            .then(data => setSuggestions(data))
+                                            .catch(() => setSuggestions([]));
+                                    } else {
+                                        setSuggestions([]);
+                                    }
+                                }}
                                 onKeyDown={handleKeyDown}
                                 placeholder="O que você está buscando?"
                                 className="w-full py-3 px-4 pr-12 border border-beige bg-offwhite rounded-none focus:outline-none focus:border-gold transition-colors"
@@ -396,6 +408,46 @@ export function Header() {
                                     />
                                 </svg>
                             </button>
+
+                            {/* Live Suggestions */}
+                            {suggestions.length > 0 && (
+                                <div className="absolute top-full left-0 w-full bg-white border border-beige border-t-0 shadow-lg mt-1 max-h-96 overflow-y-auto">
+                                    {suggestions.map((product: any) => (
+                                        <Link
+                                            key={product.id}
+                                            href={`/produto/${product.slug}`}
+                                            className="flex items-center gap-4 p-3 hover:bg-beige/30 transition-colors border-b border-beige/30 last:border-0"
+                                            onClick={() => {
+                                                setIsSearchOpen(false);
+                                                setSearchTerm("");
+                                                setSuggestions([]);
+                                            }}
+                                        >
+                                            <div className="relative w-12 h-12 bg-offwhite flex-shrink-0">
+                                                <Image
+                                                    src={product.image || "/placeholder-product.jpg"}
+                                                    alt={product.name}
+                                                    fill
+                                                    sizes="48px"
+                                                    className="object-cover"
+                                                />
+                                            </div>
+                                            <div>
+                                                <p className="font-display text-dark text-sm">{product.name}</p>
+                                                <p className="text-gold text-xs font-medium">
+                                                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(product.price)}
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                    <button
+                                        onClick={handleSearch}
+                                        className="w-full p-2 text-center text-xs text-taupe hover:text-gold hover:bg-beige/30 uppercase tracking-wider"
+                                    >
+                                        Ver todos os resultados
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

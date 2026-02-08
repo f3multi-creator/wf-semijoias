@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { WhatsAppButton } from "@/components/layout/WhatsAppButton";
+import { CartSync } from "@/components/cart/CartSync";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -30,9 +31,13 @@ export const metadata: Metadata = {
   description:
     "Semijoias artesanais feitas à mão com pedras brasileiras premium. Design exclusivo para mulheres empoderadas. Qualidade e sofisticação em cada peça.",
   icons: {
-    icon: "/logo-icon.png",
-    shortcut: "/logo-icon.png",
-    apple: "/logo-icon.png",
+    icon: [
+      { url: "/logo-icon.png", sizes: "any" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/logo-icon.png" },
+    ],
   },
   keywords: [
     "semijoias",
@@ -76,6 +81,7 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${cormorant.variable} ${googleSans.variable}`}>
       <body className="min-h-screen flex flex-col">
         <AuthProvider>
+          <CartSync />
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

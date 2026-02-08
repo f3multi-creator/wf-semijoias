@@ -488,16 +488,39 @@ export default function CheckoutPage() {
                                     Pagamento
                                 </h2>
 
-                                <p className="text-brown mb-6">
-                                    Você será redirecionado para o Mercado Pago para finalizar o pagamento de forma segura.
-                                </p>
+                                <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8 shadow-sm">
+                                    <div className="flex items-start gap-4 mb-6">
+                                        <div className="p-2 bg-green-100 rounded-full text-green-600">
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-medium text-gray-900 text-lg mb-1">
+                                                Compra Garantida
+                                            </h3>
+                                            <p className="text-gray-600 text-sm leading-relaxed">
+                                                Sua compra é processada pelo <strong>Mercado Pago</strong>. Receba seu produto ou seu dinheiro de volta. Garantia total do Mercado Livre.
+                                            </p>
+                                        </div>
+                                    </div>
 
-                                <div className="p-4 bg-cream border border-beige mb-6">
-                                    <p className="text-sm text-taupe mb-2">Formas de pagamento aceitas:</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        <span className="px-3 py-1 bg-dark text-cream text-xs">PIX</span>
-                                        <span className="px-3 py-1 bg-dark text-cream text-xs">Cartão até 12x</span>
-                                        <span className="px-3 py-1 bg-dark text-cream text-xs">Boleto</span>
+                                    <div className="border-t border-gray-100 pt-4">
+                                        <p className="text-xs text-gray-500 mb-3 uppercase tracking-wide font-medium">Formas de pagamento aceitas:</p>
+                                        <div className="flex flex-wrap gap-2 items-center">
+                                            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-700 text-sm rounded border border-gray-200">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                                PIX
+                                            </span>
+                                            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-700 text-sm rounded border border-gray-200">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                                Cartão até 12x
+                                            </span>
+                                            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-700 text-sm rounded border border-gray-200">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                                Boleto
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
