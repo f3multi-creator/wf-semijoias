@@ -31,6 +31,7 @@ export const metadata: Metadata = {
     "Semijoias artesanais feitas à mão com pedras brasileiras premium. Design exclusivo para mulheres empoderadas. Qualidade e sofisticação em cada peça.",
   icons: {
     icon: "/logo-icon.png",
+    shortcut: "/logo-icon.png",
     apple: "/logo-icon.png",
   },
   keywords: [

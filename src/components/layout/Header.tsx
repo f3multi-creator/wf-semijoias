@@ -43,7 +43,7 @@ export function Header() {
         <header className="sticky top-0 z-50 bg-cream/95 backdrop-blur-sm border-b border-beige">
             {/* Top Bar - Frete Grátis */}
             <div className="bg-dark text-cream text-center py-2 text-sm tracking-wide">
-                <p>FRETE GRÁTIS em compras acima de R$ 299 ✦ Parcele em até 12x</p>
+                <p>FRETE GRÁTIS em compras acima de R$ 299 | Parcele em até 12x</p>
             </div>
 
             <div className="container">
