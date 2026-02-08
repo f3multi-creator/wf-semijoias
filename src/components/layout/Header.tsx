@@ -84,6 +84,32 @@ export function Header() {
                                 {item.name}
                             </Link>
                         ))}
+
+                        {/* Dropdown Materiais */}
+                        <div className="relative group">
+                            <button className="text-sm tracking-wider uppercase text-dark hover:text-gold transition-colors flex items-center gap-1">
+                                Materiais
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div className="absolute top-full left-0 w-48 bg-cream border border-beige shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pt-2">
+                                <div className="py-2">
+                                    <Link href="/linha/couro" className="block px-4 py-2 text-sm text-dark hover:bg-beige hover:text-gold">
+                                        Couro
+                                    </Link>
+                                    <Link href="/linha/perolas" className="block px-4 py-2 text-sm text-dark hover:bg-beige hover:text-gold">
+                                        Pérolas
+                                    </Link>
+                                    <Link href="/linha/cristal" className="block px-4 py-2 text-sm text-dark hover:bg-beige hover:text-gold">
+                                        Cristal
+                                    </Link>
+                                    <Link href="/linha/pedras-naturais" className="block px-4 py-2 text-sm text-dark hover:bg-beige hover:text-gold">
+                                        Pedras Naturais
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
                     </nav>
 
                     {/* Icons */}
@@ -252,6 +278,41 @@ export function Header() {
                                 {item.name}
                             </Link>
                         ))}
+
+                        {/* Materiais Mobile */}
+                        <div className="py-2 border-b border-beige/50">
+                            <p className="text-sm text-taupe uppercase tracking-wider mb-2">Materiais</p>
+                            <div className="flex flex-col gap-2 pl-4">
+                                <Link
+                                    href="/linha/couro"
+                                    className="text-base text-dark hover:text-gold"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Couro
+                                </Link>
+                                <Link
+                                    href="/linha/perolas"
+                                    className="text-base text-dark hover:text-gold"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Pérolas
+                                </Link>
+                                <Link
+                                    href="/linha/cristal"
+                                    className="text-base text-dark hover:text-gold"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Cristal
+                                </Link>
+                                <Link
+                                    href="/linha/pedras-naturais"
+                                    className="text-base text-dark hover:text-gold"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Pedras Naturais
+                                </Link>
+                            </div>
+                        </div>
                         <div className="flex flex-col gap-2 pt-4">
                             {session ? (
                                 <>

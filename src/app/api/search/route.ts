@@ -16,13 +16,14 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q");
+    const lineSlug = searchParams.get("line");
 
     if (!query || query.length < 2) {
         return NextResponse.json([]);
     }
 
     try {
-        const { data, error } = await supabase
+        let queryBuilder = supabase
             .from("products")
             .select(`
                 id,
@@ -30,14 +31,50 @@ export async function GET(request: NextRequest) {
                 slug,
                 price,
                 compare_price,
+                collection_id,
                 is_active,
                 images:product_images(url, is_primary),
-                category:categories(name, slug)
+                category:categories(name, slug),
+                lines:product_lines(
+                    line:lines(name, slug)
+                )
             `)
             .eq("is_active", true)
             .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
             .order("name")
-            .limit(20);
+            .limit(50);
+
+        // Se houver filtro de linha, precisamos filtrar
+        // O Supabase não tem um "where exists" simples via API JS para relação N:N
+        // Então vamos filtrar no código ou fazer uma query inversa se necessário
+        // Mas como 'lines' está no select, podemos filtrar depois ou usar modificadores !inner
+
+        if (lineSlug) {
+            // Usando !inner para forçar o join e filtrar pela linha
+            // Mantendo a mesma estrutura de retorno (alias 'lines') para compatibilidade de tipos
+            queryBuilder = supabase
+                .from("products")
+                .select(`
+                    id,
+                    name,
+                    slug,
+                    price,
+                    compare_price,
+                    collection_id,
+                    is_active,
+                    images:product_images(url, is_primary),
+                    category:categories(name, slug),
+                    lines:product_lines!inner(
+                        line:lines!inner(name, slug)
+                    )
+                `)
+                .eq("is_active", true)
+                .eq("lines.line.slug", lineSlug)
+                .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+                .order("name");
+        }
+
+        const { data, error } = await queryBuilder;
 
         if (error) throw error;
 
@@ -52,6 +89,10 @@ export async function GET(request: NextRequest) {
                 || product.images?.[0]?.url
                 || "/products/placeholder.jpg",
             category: product.category?.name || "Semijoias",
+            // Extrair linhas se disponível (depende da query usada)
+            lines: product.lines?.map((pl: any) => pl.line)
+                || product.product_lines?.map((pl: any) => pl.line)
+                || []
         }));
 
         return NextResponse.json(products);

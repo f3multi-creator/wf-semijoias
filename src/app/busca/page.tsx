@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 interface Product {
     id: string;
@@ -17,15 +17,29 @@ interface Product {
 
 export default function SearchPage() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const initialQuery = searchParams.get("q") || "";
+    const initialLine = searchParams.get("line") || "";
 
     const [query, setQuery] = useState(initialQuery);
+    const [selectedLine, setSelectedLine] = useState(initialLine);
     const [products, setProducts] = useState<Product[]>([]);
+    const [lines, setLines] = useState<{ name: string, slug: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
 
-    const searchProducts = useCallback(async (searchQuery: string) => {
-        if (searchQuery.length < 2) {
+    // Carregar linhas disponíveis
+    useEffect(() => {
+        fetch("/api/admin/lines")
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setLines(data);
+            })
+            .catch(console.error);
+    }, []);
+
+    const searchProducts = useCallback(async (searchQuery: string, lineSlug: string) => {
+        if (searchQuery.length < 2 && !lineSlug) {
             setProducts([]);
             setSearched(false);
             return;
@@ -33,33 +47,36 @@ export default function SearchPage() {
 
         setLoading(true);
         setSearched(true);
+
+        // Atualizar URL sem recarregar
+        const params = new URLSearchParams();
+        if (searchQuery) params.set("q", searchQuery);
+        if (lineSlug) params.set("line", lineSlug);
+        router.replace(`/busca?${params.toString()}`, { scroll: false });
+
         try {
-            const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+            const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&line=${encodeURIComponent(lineSlug)}`);
             const data = await response.json();
             if (Array.isArray(data)) {
                 setProducts(data);
+            } else {
+                setProducts([]);
             }
         } catch (error) {
             console.error("Erro na busca:", error);
+            setProducts([]);
         }
         setLoading(false);
-    }, []);
+    }, [router]);
 
-    // Buscar quando a query muda (com debounce)
+    // Buscar quando a query ou linha muda (com debounce para query)
     useEffect(() => {
         const timeout = setTimeout(() => {
-            searchProducts(query);
+            searchProducts(query, selectedLine);
         }, 300);
 
         return () => clearTimeout(timeout);
-    }, [query, searchProducts]);
-
-    // Buscar quando carrega a página com query param
-    useEffect(() => {
-        if (initialQuery) {
-            searchProducts(initialQuery);
-        }
-    }, [initialQuery, searchProducts]);
+    }, [query, selectedLine, searchProducts]);
 
     const formatPrice = (value: number) => {
         return value.toLocaleString("pt-BR", {
@@ -76,8 +93,8 @@ export default function SearchPage() {
                     <h1 className="font-display text-3xl text-dark mb-6 text-center">
                         Buscar Produtos
                     </h1>
-                    <div className="max-w-xl mx-auto">
-                        <div className="relative">
+                    <div className="max-w-2xl mx-auto">
+                        <div className="relative mb-6">
                             <input
                                 type="text"
                                 value={query}
@@ -99,7 +116,35 @@ export default function SearchPage() {
                                 )}
                             </div>
                         </div>
-                        {query.length > 0 && query.length < 2 && (
+
+                        {/* Filtros de Linha */}
+                        {lines.length > 0 && (
+                            <div className="flex flex-wrap justify-center gap-2">
+                                <button
+                                    onClick={() => setSelectedLine("")}
+                                    className={`px-4 py-1 rounded-full text-sm transition-colors ${selectedLine === ""
+                                        ? "bg-dark text-white"
+                                        : "bg-white border border-beige text-dark hover:border-gold"
+                                        }`}
+                                >
+                                    Todos
+                                </button>
+                                {lines.map((line) => (
+                                    <button
+                                        key={line.slug}
+                                        onClick={() => setSelectedLine(line.slug)}
+                                        className={`px-4 py-1 rounded-full text-sm transition-colors ${selectedLine === line.slug
+                                            ? "bg-dark text-white"
+                                            : "bg-white border border-beige text-dark hover:border-gold"
+                                            }`}
+                                    >
+                                        {line.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {query.length > 0 && query.length < 2 && !selectedLine && (
                             <p className="text-taupe text-sm mt-2 text-center">
                                 Digite pelo menos 2 caracteres para buscar
                             </p>
@@ -119,46 +164,54 @@ export default function SearchPage() {
                 {!loading && searched && products.length === 0 && (
                     <div className="text-center py-12">
                         <p className="text-dark text-lg mb-2">
-                            Nenhum produto encontrado para &quot;{query}&quot;
+                            Nenhum produto encontrado
                         </p>
                         <p className="text-taupe">
-                            Tente buscar por outros termos ou navegue pelas categorias
+                            Tente buscar por outros termos ou remover os filtros
                         </p>
-                        <Link href="/" className="btn btn-primary mt-6 inline-block">
-                            Ver todos os produtos
-                        </Link>
+                        <button
+                            onClick={() => {
+                                setQuery("");
+                                setSelectedLine("");
+                            }}
+                            className="text-gold hover:underline mt-4 inline-block"
+                        >
+                            Limpar busca
+                        </button>
                     </div>
                 )}
 
                 {!loading && products.length > 0 && (
                     <>
-                        <p className="text-taupe mb-6">
-                            {products.length} resultado{products.length !== 1 ? 's' : ''} para &quot;{query}&quot;
+                        <p className="text-taupe mb-6 text-center md:text-left">
+                            {products.length} resultado{products.length !== 1 ? 's' : ''} encontrado{products.length !== 1 ? 's' : ''}
                         </p>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {products.map((product) => (
                                 <Link
                                     key={product.id}
                                     href={`/produto/${product.slug}`}
-                                    className="group bg-white border border-beige hover:border-gold transition-colors"
+                                    className="group bg-white border border-beige hover:border-gold transition-colors flex flex-col"
                                 >
-                                    <div className="relative aspect-square bg-cream">
+                                    <div className="relative aspect-square bg-cream overflow-hidden">
                                         <Image
                                             src={product.image}
                                             alt={product.name}
                                             fill
                                             sizes="(max-width: 768px) 50vw, 25vw"
-                                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                            className="object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
                                     </div>
-                                    <div className="p-4">
-                                        <p className="text-xs text-gold uppercase tracking-wider mb-1">
-                                            {product.category}
-                                        </p>
-                                        <h3 className="font-medium text-dark mb-2 line-clamp-2">
-                                            {product.name}
-                                        </h3>
-                                        <div className="flex items-center gap-2">
+                                    <div className="p-4 flex-grow flex flex-col justify-between">
+                                        <div>
+                                            <p className="text-xs text-gold uppercase tracking-wider mb-1">
+                                                {product.category}
+                                            </p>
+                                            <h3 className="font-medium text-dark mb-2 line-clamp-2 group-hover:text-gold transition-colors">
+                                                {product.name}
+                                            </h3>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2">
                                             <span className="text-dark font-semibold">
                                                 {formatPrice(product.price)}
                                             </span>
@@ -178,7 +231,7 @@ export default function SearchPage() {
                 {!loading && !searched && (
                     <div className="text-center py-12">
                         <p className="text-taupe">
-                            Digite algo para começar a buscar
+                            Use a barra de pesquisa ou os filtros acima
                         </p>
                     </div>
                 )}
