@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { getProductBySlug, getProductsByCategory } from "@/lib/db";
 import { CustomOrderCTA } from "@/components/product/CustomOrderCTA";
+import { CustomizationBanner } from "@/components/product/CustomizationBanner";
 
 const WHATSAPP_NUMBER = "5527999201077";
 
@@ -276,6 +277,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     </div>
                 </div>
             </section>
+
+            {/* Banner de Personalização */}
+            <CustomizationBanner />
 
             {/* Seção de Exclusividade */}
             <CustomOrderCTA productName={product.name} />

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCart, formatPrice } from "@/store/cart";
+import { WhatsAppModal } from "@/components/checkout/WhatsAppModal";
 
 interface AppliedCoupon {
     code: string;
@@ -29,13 +30,31 @@ export default function CheckoutPage() {
     const [shippingOptions, setShippingOptions] = useState<any[]>([]);
     const [selectedShipping, setSelectedShipping] = useState<any>(null);
 
-    // Verificar se o usuário está autenticado
+    // WhatsApp/Profile Logic
+    const [userPhone, setUserPhone] = useState("");
+    const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+    const [isProfileLoading, setIsProfileLoading] = useState(false);
+
+    // Verificar se o usuário está autenticado e buscar perfil
     useEffect(() => {
         if (status === "unauthenticated") {
-            // Redirecionar para login com returnUrl
             router.push("/login?callbackUrl=/checkout");
+        } else if (status === "authenticated") {
+            fetchUserProfile();
         }
     }, [status, router]);
+
+    const fetchUserProfile = async () => {
+        try {
+            const response = await fetch("/api/user/profile");
+            const data = await response.json();
+            if (data.customer?.phone) {
+                setUserPhone(data.customer.phone);
+            }
+        } catch (error) {
+            console.error("Erro ao buscar perfil:", error);
+        }
+    };
 
     const subtotal = getSubtotal();
     const shipping = selectedShipping?.price || getShipping(subtotal);
@@ -144,14 +163,44 @@ export default function CheckoutPage() {
         setCouponError("");
     };
 
-    // Iniciar pagamento com Mercado Pago
-    const handlePayment = async () => {
-        // Verificar se está autenticado
+    // Iniciar fluxo de pagamento (abre modal primeiro)
+    const handlePaymentClick = () => {
         if (!session?.user?.email) {
             router.push("/login?callbackUrl=/checkout");
             return;
         }
+        setIsWhatsAppModalOpen(true);
+    };
 
+    const handleConfirmWhatsApp = async (confirmedPhone: string) => {
+        setIsProfileLoading(true);
+        try {
+            // Salvar telefone no banco
+            const response = await fetch("/api/user/profile", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: confirmedPhone })
+            });
+
+            if (!response.ok) {
+                throw new Error("Erro ao salvar telefone");
+            }
+
+            setUserPhone(confirmedPhone);
+            setIsWhatsAppModalOpen(false);
+
+            // Prosseguir com pagamento
+            await processPayment(confirmedPhone);
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao salvar contato. Tente novamente.");
+        } finally {
+            setIsProfileLoading(false);
+        }
+    };
+
+    // Processar pagamento com Mercado Pago
+    const processPayment = async (phone: string) => {
         setIsLoading(true);
 
         try {
@@ -169,7 +218,8 @@ export default function CheckoutPage() {
                     })),
                     shipping: selectedShipping,
                     discount,
-                    customerEmail: session.user.email,
+                    customerEmail: session?.user?.email,
+                    customerPhone: phone // Passar telefone para a API (precisaria atualizar a API tb se quiser usar lá)
                 }),
             });
 
@@ -235,6 +285,14 @@ export default function CheckoutPage() {
 
     return (
         <section className="section bg-cream">
+            <WhatsAppModal
+                isOpen={isWhatsAppModalOpen}
+                onClose={() => setIsWhatsAppModalOpen(false)}
+                onConfirm={handleConfirmWhatsApp}
+                initialPhone={userPhone}
+                isLoading={isProfileLoading}
+            />
+
             <div className="container">
                 <h1 className="font-display text-3xl md:text-4xl text-dark mb-8">
                     Finalizar Compra
@@ -451,11 +509,16 @@ export default function CheckoutPage() {
                                         Voltar
                                     </button>
                                     <button
-                                        onClick={handlePayment}
+                                        onClick={handlePaymentClick}
                                         disabled={isLoading}
                                         className="btn btn-primary flex-1"
                                     >
-                                        {isLoading ? "Processando..." : `Pagar ${formatPrice(total)}`}
+                                        {isLoading
+                                            ? "Processando..."
+                                            : userPhone
+                                                ? `Confirmar (WhatsApp) e Pagar ${formatPrice(total)}`
+                                                : `Ir para Pagamento ${formatPrice(total)}`
+                                        }
                                     </button>
                                 </div>
                             </div>
