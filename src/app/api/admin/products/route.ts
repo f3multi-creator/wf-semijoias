@@ -30,20 +30,40 @@ export async function GET(request: NextRequest) {
 
     try {
         if (id) {
-            // Buscar produto por ID
+            // Buscar produto por ID (com linhas)
             const { data, error } = await supabase
                 .from("products")
-                .select("*, images:product_images(*), category:categories(id, name, slug)")
+                .select(`
+                    *, 
+                    images:product_images(*), 
+                    category:categories(id, name, slug),
+                    collection:collections(id, name, slug)
+                `)
                 .eq("id", id)
                 .single();
 
             if (error) throw error;
-            return NextResponse.json(data);
+
+            // Buscar linhas do produto
+            const { data: productLines } = await supabase
+                .from("product_lines")
+                .select("line_id, lines(id, name, slug)")
+                .eq("product_id", id);
+
+            return NextResponse.json({
+                ...data,
+                lines: productLines?.map((pl: any) => pl.lines) || []
+            });
         } else {
             // Listar produtos com filtros
             let query = supabase
                 .from("products")
-                .select("*, images:product_images(*), category:categories(id, name, slug)");
+                .select(`
+                    *, 
+                    images:product_images(*), 
+                    category:categories(id, name, slug),
+                    collection:collections(id, name, slug)
+                `);
 
             // Filtro por busca (nome ou slug)
             if (search) {
@@ -80,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { images, ...productData } = body;
+        const { images, line_ids, ...productData } = body;
 
         // Criar produto
         const { data: product, error: productError } = await supabase
@@ -103,6 +123,16 @@ export async function POST(request: NextRequest) {
             await supabase.from("product_images").insert(imagesToInsert);
         }
 
+        // Criar relações com linhas se existirem
+        if (line_ids && line_ids.length > 0) {
+            const linesToInsert = line_ids.map((lineId: string) => ({
+                product_id: product.id,
+                line_id: lineId,
+            }));
+
+            await supabase.from("product_lines").insert(linesToInsert);
+        }
+
         return NextResponse.json(product, { status: 201 });
     } catch (error: any) {
         console.error("Erro ao criar produto:", error);
@@ -119,7 +149,7 @@ export async function PUT(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { id, images, ...productData } = body;
+        const { id, images, line_ids, ...productData } = body;
 
         if (!id) {
             return NextResponse.json({ error: "ID é obrigatório" }, { status: 400 });
@@ -153,6 +183,25 @@ export async function PUT(request: NextRequest) {
                 }));
 
                 await supabase.from("product_images").insert(imagesToInsert);
+            }
+        }
+
+        // Atualizar linhas se fornecidas
+        if (line_ids !== undefined) {
+            // Deletar linhas antigas
+            await supabase
+                .from("product_lines")
+                .delete()
+                .eq("product_id", id);
+
+            // Inserir novas linhas
+            if (line_ids && line_ids.length > 0) {
+                const linesToInsert = line_ids.map((lineId: string) => ({
+                    product_id: id,
+                    line_id: lineId,
+                }));
+
+                await supabase.from("product_lines").insert(linesToInsert);
             }
         }
 

@@ -12,6 +12,20 @@ interface Category {
     slug: string;
 }
 
+interface Line {
+    id: string;
+    name: string;
+    slug: string;
+    is_active: boolean;
+}
+
+interface Collection {
+    id: string;
+    name: string;
+    slug: string;
+    is_active: boolean;
+}
+
 interface ProductFormProps {
     productId?: string;
 }
@@ -21,7 +35,12 @@ export function ProductForm({ productId }: ProductFormProps) {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [lines, setLines] = useState<Line[]>([]);
+    const [collections, setCollections] = useState<Collection[]>([]);
     const [uploadingImage, setUploadingImage] = useState(false);
+
+    // IDs das linhas selecionadas
+    const [selectedLineIds, setSelectedLineIds] = useState<string[]>([]);
 
     const [form, setForm] = useState({
         name: "",
@@ -32,6 +51,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         sku: "",
         stock_quantity: "0",
         category_id: "",
+        collection_id: "",
         is_active: true,
         is_featured: false,
         is_new: false,
@@ -40,28 +60,35 @@ export function ProductForm({ productId }: ProductFormProps) {
     const [images, setImages] = useState<{ id?: string; url: string; is_primary: boolean }[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // Carregar categorias via API (com service role)
+    // Carregar categorias, linhas e coleções via API
     useEffect(() => {
-        async function loadCategories() {
+        async function loadData() {
             try {
-                // Usar API interna que tem service role
-                const response = await fetch('/api/admin/categories');
-                if (response.ok) {
-                    const data = await response.json();
+                // Carregar categorias
+                const catResponse = await fetch('/api/admin/categories');
+                if (catResponse.ok) {
+                    const data = await catResponse.json();
                     if (Array.isArray(data)) setCategories(data);
-                } else {
-                    // Fallback: tentar supabase direto
-                    const { data } = await supabase.from("categories").select("*").order("position");
-                    if (data) setCategories(data);
+                }
+
+                // Carregar linhas
+                const linesResponse = await fetch('/api/admin/lines');
+                if (linesResponse.ok) {
+                    const data = await linesResponse.json();
+                    if (Array.isArray(data)) setLines(data);
+                }
+
+                // Carregar coleções
+                const collectionsResponse = await fetch('/api/admin/collections');
+                if (collectionsResponse.ok) {
+                    const data = await collectionsResponse.json();
+                    if (Array.isArray(data)) setCollections(data);
                 }
             } catch (error) {
-                console.error('Erro ao carregar categorias:', error);
-                // Fallback: tentar supabase direto
-                const { data } = await supabase.from("categories").select("*").order("position");
-                if (data) setCategories(data);
+                console.error('Erro ao carregar dados:', error);
             }
         }
-        loadCategories();
+        loadData();
     }, []);
 
     // Carregar produto para edição (via API)
@@ -84,6 +111,7 @@ export function ProductForm({ productId }: ProductFormProps) {
                         sku: product.sku || "",
                         stock_quantity: product.stock_quantity.toString(),
                         category_id: product.category_id || "",
+                        collection_id: product.collection_id || "",
                         is_active: product.is_active,
                         is_featured: product.is_featured,
                         is_new: product.is_new,
@@ -93,6 +121,8 @@ export function ProductForm({ productId }: ProductFormProps) {
                         url: img.url,
                         is_primary: img.is_primary,
                     })) || []);
+                    // Carregar linhas selecionadas
+                    setSelectedLineIds(product.lines?.map((l: any) => l.id) || []);
                 }
             } catch (error) {
                 console.error("Erro ao carregar produto:", error);
@@ -212,9 +242,19 @@ export function ProductForm({ productId }: ProductFormProps) {
         if (!form.slug.trim()) newErrors.slug = "Slug é obrigatório";
         if (!form.price || parseFloat(form.price) <= 0) newErrors.price = "Preço deve ser maior que zero";
         if (parseInt(form.stock_quantity) < 0) newErrors.stock_quantity = "Estoque não pode ser negativo";
+        if (!form.category_id) newErrors.category_id = "Categoria é obrigatória";
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
+    };
+
+    // Toggle seleção de linha
+    const handleLineToggle = (lineId: string) => {
+        setSelectedLineIds(prev =>
+            prev.includes(lineId)
+                ? prev.filter(id => id !== lineId)
+                : [...prev, lineId]
+        );
     };
 
     // Salvar produto (via API)
@@ -236,10 +276,12 @@ export function ProductForm({ productId }: ProductFormProps) {
                 sku: form.sku.trim() || null,
                 stock_quantity: parseInt(form.stock_quantity),
                 category_id: form.category_id || null,
+                collection_id: form.collection_id || null,
                 is_active: form.is_active,
                 is_featured: form.is_featured,
                 is_new: form.is_new,
-                images: images, // Incluir imagens no payload
+                images: images,
+                line_ids: selectedLineIds, // Linhas selecionadas
             };
 
             const method = productId ? "PUT" : "POST";
@@ -368,18 +410,19 @@ export function ProductForm({ productId }: ProductFormProps) {
                 {/* Categoria e Estoque */}
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm text-taupe mb-1">Categoria</label>
+                        <label className="block text-sm text-taupe mb-1">Categoria *</label>
                         <select
                             name="category_id"
                             value={form.category_id}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 border border-beige bg-offwhite focus:outline-none focus:border-gold"
+                            className={`w-full px-4 py-2 border ${errors.category_id ? 'border-red-500' : 'border-beige'} bg-offwhite focus:outline-none focus:border-gold`}
                         >
                             <option value="">Selecione...</option>
                             {categories.map(cat => (
                                 <option key={cat.id} value={cat.id}>{cat.name}</option>
                             ))}
                         </select>
+                        {errors.category_id && <p className="text-red-500 text-xs mt-1">{errors.category_id}</p>}
                     </div>
                     <div>
                         <label className="block text-sm text-taupe mb-1">
@@ -399,6 +442,63 @@ export function ProductForm({ productId }: ProductFormProps) {
                         {parseInt(form.stock_quantity) <= 5 && parseInt(form.stock_quantity) > 0 && (
                             <p className="text-amber-600 text-xs mt-1">⚠️ Estoque baixo</p>
                         )}
+                    </div>
+                </div>
+
+                {/* Linhas (Materiais) e Coleção */}
+                <div className="border-t border-beige pt-6">
+                    <h3 className="text-sm font-medium text-dark mb-4">Classificação</h3>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {/* Linhas (multi-select) */}
+                        <div>
+                            <label className="block text-sm text-taupe mb-2">
+                                Linhas (materiais)
+                                <span className="ml-1 text-xs text-gray-400">opcionais</span>
+                            </label>
+                            <div className="flex flex-wrap gap-3 p-3 border border-beige bg-offwhite rounded">
+                                {lines.length === 0 ? (
+                                    <p className="text-taupe text-sm">Nenhuma linha cadastrada</p>
+                                ) : (
+                                    lines.filter(l => l.is_active).map(line => (
+                                        <label
+                                            key={line.id}
+                                            className={`flex items-center gap-2 px-3 py-1.5 border rounded cursor-pointer transition-colors ${selectedLineIds.includes(line.id)
+                                                    ? 'border-gold bg-gold/10 text-gold'
+                                                    : 'border-beige hover:border-gold/50'
+                                                }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedLineIds.includes(line.id)}
+                                                onChange={() => handleLineToggle(line.id)}
+                                                className="hidden"
+                                            />
+                                            <span className="text-sm">{line.name}</span>
+                                        </label>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Coleção (single select) */}
+                        <div>
+                            <label className="block text-sm text-taupe mb-2">
+                                Coleção
+                                <span className="ml-1 text-xs text-gray-400">opcional</span>
+                            </label>
+                            <select
+                                name="collection_id"
+                                value={form.collection_id}
+                                onChange={handleChange}
+                                className="w-full px-4 py-2 border border-beige bg-offwhite focus:outline-none focus:border-gold"
+                            >
+                                <option value="">Nenhuma coleção</option>
+                                {collections.filter(c => c.is_active).map(col => (
+                                    <option key={col.id} value={col.id}>{col.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
 

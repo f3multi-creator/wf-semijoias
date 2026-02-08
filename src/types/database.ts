@@ -28,6 +28,7 @@ export interface Product {
     images?: ProductImage[];
     category?: Category;
     collection?: Collection;
+    lines?: Line[];
 }
 
 export interface ProductImage {
@@ -49,13 +50,30 @@ export interface Category {
     position: number;
 }
 
-export interface Collection {
+export interface Line {
     id: string;
     name: string;
     slug: string;
     description: string | null;
     image_url: string | null;
     is_active: boolean;
+    position: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Collection {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    image_url: string | null;
+    hero_image: string | null;
+    short_description: string | null;
+    position: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface Customer {

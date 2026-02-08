@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { Product, Category, Collection } from '@/types/database';
+import type { Product, Category, Collection, Line } from '@/types/database';
 
 // ============================================
 // PRODUTOS
@@ -152,10 +152,123 @@ export async function getCollections() {
         .from('collections')
         .select('*')
         .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .order('position', { ascending: true });
 
     if (error) {
         console.error('Erro ao buscar coleções:', error);
+        return [];
+    }
+
+    return data || [];
+}
+
+export async function getCollectionBySlug(slug: string) {
+    const { data, error } = await supabase
+        .from('collections')
+        .select('*')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single();
+
+    if (error) {
+        console.error('Erro ao buscar coleção:', error);
+        return null;
+    }
+
+    return data;
+}
+
+export async function getProductsByCollection(collectionSlug: string, limit = 50) {
+    // Primeiro buscar a coleção pelo slug
+    const collection = await getCollectionBySlug(collectionSlug);
+    if (!collection) return [];
+
+    const { data, error } = await supabase
+        .from('products')
+        .select(`
+      *,
+      category:categories(*),
+      images:product_images(*)
+    `)
+        .eq('is_active', true)
+        .eq('collection_id', collection.id)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('Erro ao buscar produtos por coleção:', error);
+        return [];
+    }
+
+    return data || [];
+}
+
+// ============================================
+// LINHAS (MATERIAIS)
+// ============================================
+
+export async function getLines() {
+    const { data, error } = await supabase
+        .from('lines')
+        .select('*')
+        .eq('is_active', true)
+        .order('position', { ascending: true });
+
+    if (error) {
+        console.error('Erro ao buscar linhas:', error);
+        return [];
+    }
+
+    return data || [];
+}
+
+export async function getLineBySlug(slug: string) {
+    const { data, error } = await supabase
+        .from('lines')
+        .select('*')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single();
+
+    if (error) {
+        console.error('Erro ao buscar linha:', error);
+        return null;
+    }
+
+    return data;
+}
+
+export async function getProductsByLine(lineSlug: string, limit = 50) {
+    // Primeiro buscar a linha pelo slug
+    const line = await getLineBySlug(lineSlug);
+    if (!line) return [];
+
+    // Buscar produtos que têm essa linha via tabela de junção
+    const { data: productLines, error: junctionError } = await supabase
+        .from('product_lines')
+        .select('product_id')
+        .eq('line_id', line.id);
+
+    if (junctionError || !productLines || productLines.length === 0) {
+        return [];
+    }
+
+    const productIds = productLines.map(pl => pl.product_id);
+
+    const { data, error } = await supabase
+        .from('products')
+        .select(`
+      *,
+      category:categories(*),
+      images:product_images(*)
+    `)
+        .eq('is_active', true)
+        .in('id', productIds)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('Erro ao buscar produtos por linha:', error);
         return [];
     }
 
