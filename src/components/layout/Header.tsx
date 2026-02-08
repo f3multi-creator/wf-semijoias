@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useCart } from "@/store/cart";
 
@@ -12,6 +13,22 @@ export function Header() {
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const { getItemCount, openCart } = useCart();
     const { data: session, status } = useSession();
+    const router = useRouter();
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const handleSearch = () => {
+        if (searchTerm.trim().length > 1) {
+            router.push(`/busca?q=${encodeURIComponent(searchTerm.trim())}`);
+            setIsSearchOpen(false);
+            setSearchTerm("");
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            handleSearch();
+        }
+    };
 
     const navigation = [
         { name: "Novidades", href: "/novidades" },
@@ -354,11 +371,17 @@ export function Header() {
                         <div className="relative">
                             <input
                                 type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onKeyDown={handleKeyDown}
                                 placeholder="O que você está buscando?"
                                 className="w-full py-3 px-4 pr-12 border border-beige bg-offwhite rounded-none focus:outline-none focus:border-gold transition-colors"
                                 autoFocus
                             />
-                            <button className="absolute right-4 top-1/2 -translate-y-1/2 text-taupe hover:text-gold">
+                            <button
+                                onClick={handleSearch}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-taupe hover:text-gold"
+                            >
                                 <svg
                                     className="w-5 h-5"
                                     fill="none"
