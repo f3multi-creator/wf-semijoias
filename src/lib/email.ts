@@ -309,8 +309,50 @@ export async function sendStockAlertEmail(
       `,
     });
     return { success: true };
+    return { success: false, error };
+  }
+}
+
+// Email de Carrinho Abandonado
+export async function sendAbandonedCartEmail(to: string, name: string, recoverLink: string) {
+  const resend = getResend();
+  if (!resend) return { success: false, error: 'Email service not configured' };
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: 'Você esqueceu algo especial... ✨',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>${emailStyles}</head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="logo">WF Semijoias</div>
+            </div>
+            <div class="content">
+              <h2>Olá, ${name}!</h2>
+              <p>Notamos que você deixou algumas peças lindas no seu carrinho.</p>
+              <p>Elas estão te esperando, mas nosso estoque é limitado.</p>
+              <p>Que tal finalizar sua compra agora?</p>
+
+              <a href="${recoverLink}" class="button">Voltar ao Carrinho</a>
+              
+              <p>Se tiver alguma dúvida, nossa equipe está pronta para te ajudar no WhatsApp.</p>
+            </div>
+            <div class="footer">
+              <p>WF Semijoias - Joias que contam histórias</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+    return { success: true };
   } catch (error) {
-    console.error('Erro ao enviar alerta de estoque:', error);
+    console.error('Erro ao enviar email de carrinho abandonado:', error);
     return { success: false, error };
   }
 }
