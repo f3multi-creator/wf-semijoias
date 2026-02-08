@@ -520,7 +520,7 @@ export default function CheckoutPage() {
                                             <p className="text-sm text-gray-500">
                                                 Tem dúvidas? Acesse nosso FAQ ou
                                                 <button
-                                                    onClick={() => window.open('https://wa.me/5511999999999', '_blank')}
+                                                    onClick={() => window.open('https://wa.me/5527999207797', '_blank')}
                                                     className="text-gold hover:underline ml-1 font-medium"
                                                 >
                                                     fale conosco no WhatsApp
