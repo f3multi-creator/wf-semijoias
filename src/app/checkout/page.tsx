@@ -489,18 +489,42 @@ export default function CheckoutPage() {
                                 </h2>
 
                                 <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8 shadow-sm">
-                                    <div className="flex items-start gap-4 mb-6">
-                                        <div className="p-2 bg-green-100 rounded-full text-green-600">
-                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                            </svg>
+                                    <div className="flex flex-col gap-4 mb-6">
+                                        <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg border border-green-100">
+                                            <div className="flex-shrink-0">
+                                                <Image
+                                                    src="/mercadopago-logo.png"
+                                                    alt="Mercado Pago"
+                                                    width={80}
+                                                    height={20}
+                                                    className="mb-2 object-contain"
+                                                />
+                                                <div className="text-xs text-green-700 font-medium flex items-center gap-1">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                                    </svg>
+                                                    Compra Garantida
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 border-l border-green-200 pl-4">
+                                                <p className="text-gray-700 text-sm leading-relaxed mb-2">
+                                                    Você será redirecionado para um ambiente seguro do <strong>Mercado Pago</strong> para finalizar o pagamento.
+                                                </p>
+                                                <p className="text-gray-600 text-xs">
+                                                    Sua compra é protegida pela tecnologia do Mercado Livre: receba seu produto ou devolvemos o seu dinheiro.
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="font-medium text-gray-900 text-lg mb-1">
-                                                Compra Garantida
-                                            </h3>
-                                            <p className="text-gray-600 text-sm leading-relaxed">
-                                                Sua compra é processada pelo <strong>Mercado Pago</strong>. Receba seu produto ou seu dinheiro de volta. Garantia total do Mercado Livre.
+
+                                        <div className="text-center">
+                                            <p className="text-sm text-gray-500">
+                                                Tem dúvidas? Acesse nosso FAQ ou
+                                                <button
+                                                    onClick={() => window.open('https://wa.me/5511999999999', '_blank')}
+                                                    className="text-gold hover:underline ml-1 font-medium"
+                                                >
+                                                    fale conosco no WhatsApp
+                                                </button>.
                                             </p>
                                         </div>
                                     </div>
