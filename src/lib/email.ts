@@ -309,6 +309,8 @@ export async function sendStockAlertEmail(
       `,
     });
     return { success: true };
+  } catch (error) {
+    console.error('Erro ao enviar alerta de estoque:', error);
     return { success: false, error };
   }
 }
