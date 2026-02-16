@@ -7,6 +7,7 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { WhatsAppButton } from "@/components/layout/WhatsAppButton";
 import { CartSync } from "@/components/cart/CartSync";
+import { AnalyticsScripts } from "@/lib/analytics";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -87,6 +88,7 @@ export default function RootLayout({
           <Footer />
           <CartDrawer />
           <WhatsAppButton />
+          <AnalyticsScripts />
         </AuthProvider>
       </body>
     </html>

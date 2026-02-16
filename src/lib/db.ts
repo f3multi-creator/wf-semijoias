@@ -68,7 +68,12 @@ export async function getFeaturedProducts(limit = 8) {
     return getProducts({ featured: true, limit });
 }
 
-export async function getNewProducts(limit = 8) {
+export async function getNewProducts(limit = 50) {
+    // Produtos adicionados nos últimos 30 dias
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const cutoffDate = thirtyDaysAgo.toISOString();
+
     const { data, error } = await supabase
         .from('products')
         .select(`
@@ -77,7 +82,7 @@ export async function getNewProducts(limit = 8) {
       images:product_images(*)
     `)
         .eq('is_active', true)
-        .eq('is_new', true)
+        .gte('created_at', cutoffDate)
         .order('created_at', { ascending: false })
         .limit(limit);
 

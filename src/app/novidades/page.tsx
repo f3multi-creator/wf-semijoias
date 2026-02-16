@@ -1,61 +1,31 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Metadata } from "next";
 import { ProductCard } from "@/components/product/ProductCard";
-import { getCategoryBySlug, getProductsByCategory } from "@/lib/db";
+import { getNewProducts } from "@/lib/db";
+
+export const revalidate = 60;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://wfsemijoias.com.br';
 
-// Revalidar a cada 60 segundos
-export const revalidate = 60;
+export const metadata: Metadata = {
+    title: "Novidades | WF Semijoias",
+    description: "Confira as últimas novidades em semijoias artesanais da WF Semijoias. Peças adicionadas nos últimos 30 dias.",
+    openGraph: {
+        title: "Novidades | WF Semijoias",
+        description: "Confira as últimas novidades em semijoias artesanais.",
+        url: `${SITE_URL}/novidades`,
+        siteName: "WF Semijoias",
+        type: "website",
+        locale: "pt_BR",
+    },
+    alternates: {
+        canonical: `${SITE_URL}/novidades`,
+    },
+};
 
-interface CategoryPageProps {
-    params: Promise<{ slug: string }>;
-}
+export default async function NovidadesPage() {
+    const productsRaw = await getNewProducts(50);
 
-// SEO dinâmico para cada categoria
-export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
-    const { slug } = await params;
-    const category = await getCategoryBySlug(slug);
-
-    if (!category) {
-        return { title: "Categoria não encontrada | WF Semijoias" };
-    }
-
-    const description = category.description
-        ? category.description.substring(0, 160).trim()
-        : `Confira nossa coleção de ${category.name}. Semijoias artesanais brasileiras com frete grátis acima de R$300.`;
-
-    return {
-        title: `${category.name} | WF Semijoias`,
-        description,
-        openGraph: {
-            title: `${category.name} | WF Semijoias`,
-            description,
-            url: `${SITE_URL}/categoria/${slug}`,
-            siteName: "WF Semijoias",
-            type: "website",
-            locale: "pt_BR",
-        },
-        alternates: {
-            canonical: `${SITE_URL}/categoria/${slug}`,
-        },
-    };
-}
-
-export default async function CategoryPage({ params }: CategoryPageProps) {
-    const { slug } = await params;
-
-    const [category, productsRaw] = await Promise.all([
-        getCategoryBySlug(slug),
-        getProductsByCategory(slug, 50),
-    ]);
-
-    if (!category) {
-        notFound();
-    }
-
-    // Formatar produtos
     const products = productsRaw.map((product: any) => ({
         id: product.id,
         name: product.name,
@@ -63,8 +33,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         price: product.price,
         comparePrice: product.compare_price,
         images: product.images?.map((img: any) => img.url) || ["/products/brinco-ametista-1.jpg"],
-        category: product.category?.name || category.name,
-        isNew: product.is_new,
+        category: product.category?.name || "Semijoias",
+        isNew: true,
         isFeatured: product.is_featured,
     }));
 
@@ -80,7 +50,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                             </Link>
                         </li>
                         <li>/</li>
-                        <li className="text-dark">{category.name}</li>
+                        <li className="text-dark">Novidades</li>
                     </ol>
                 </div>
             </nav>
@@ -90,13 +60,12 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                 <div className="container">
                     <div className="text-center mb-12">
                         <h1 className="font-display text-4xl md:text-5xl text-dark mb-4">
-                            {category.name}
+                            Novidades
                         </h1>
-                        {category.description && (
-                            <p className="text-taupe max-w-2xl mx-auto">
-                                {category.description}
-                            </p>
-                        )}
+                        <p className="text-taupe max-w-2xl mx-auto">
+                            Confira as peças adicionadas nos últimos 30 dias.
+                            Semijoias artesanais feitas à mão com pedras brasileiras premium.
+                        </p>
                     </div>
 
                     {/* Products Grid */}
@@ -109,10 +78,13 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                     ) : (
                         <div className="text-center py-12">
                             <p className="text-taupe text-lg mb-4">
-                                Nenhum produto nesta categoria ainda.
+                                Nenhuma novidade no momento.
+                            </p>
+                            <p className="text-taupe text-sm mb-6">
+                                Volte em breve para conferir novas peças!
                             </p>
                             <Link href="/" className="btn btn-outline">
-                                Ver outros produtos
+                                Ver todos os produtos
                             </Link>
                         </div>
                     )}

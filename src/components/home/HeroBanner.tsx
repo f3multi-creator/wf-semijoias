@@ -10,6 +10,24 @@ interface Banner {
     alt: string;
 }
 
+interface HeroText {
+    subtitle: string;
+    title: string;
+    titleHighlight: string;
+    description: string;
+    buttonText: string;
+    buttonLink: string;
+}
+
+const DEFAULT_HERO_TEXT: HeroText = {
+    subtitle: "Coleção Exclusiva",
+    title: "Joias que contam",
+    titleHighlight: "histórias",
+    description: "Semijoias artesanais feitas à mão com pedras brasileiras premium.",
+    buttonText: "Explorar Coleção",
+    buttonLink: "/categoria/colares",
+};
+
 // Hero shots locais
 const LOCAL_HERO_IMAGES: Banner[] = [
     { id: "hero-1", url: "/hero/hero-1.jpg", alt: "WF Semijoias - Coleção Exclusiva" },
@@ -28,6 +46,7 @@ export function HeroBanner() {
     const [banners, setBanners] = useState<Banner[]>(LOCAL_HERO_IMAGES);
     const [currentIndex, setCurrentIndex] = useState(randomStartIndex);
     const [isLoading, setIsLoading] = useState(true);
+    const [heroText, setHeroText] = useState<HeroText>(DEFAULT_HERO_TEXT);
 
     // Buscar banners da API (se houver, sobrescreve os locais)
     useEffect(() => {
@@ -48,6 +67,22 @@ export function HeroBanner() {
             }
         }
         fetchBanners();
+    }, []);
+
+    // Buscar texto do hero da API
+    useEffect(() => {
+        async function fetchHeroText() {
+            try {
+                const response = await fetch("/api/admin/hero-settings");
+                const data = await response.json();
+                if (data.settings) {
+                    setHeroText(data.settings);
+                }
+            } catch (error) {
+                console.error("Erro ao carregar texto do hero:", error);
+            }
+        }
+        fetchHeroText();
     }, []);
 
     // Auto-rotate banners a cada 5 segundos (se houver mais de um)
@@ -84,18 +119,18 @@ export function HeroBanner() {
                 <div className="container relative z-10 h-full flex items-center">
                     <div className="max-w-xl">
                         <p className="text-gold uppercase tracking-[0.3em] text-sm mb-4 animate-fadeIn">
-                            Coleção Exclusiva
+                            {heroText.subtitle}
                         </p>
                         <h1 className="font-display text-4xl md:text-5xl lg:text-6xl text-dark mb-6 leading-tight animate-fadeIn">
-                            Joias que contam
+                            {heroText.title}
                             <br />
-                            <span className="text-gold italic">histórias</span>
+                            <span className="text-gold italic">{heroText.titleHighlight}</span>
                         </h1>
                         <p className="text-taupe text-lg mb-8 leading-relaxed animate-fadeIn">
-                            Semijoias artesanais feitas à mão com pedras brasileiras premium.
+                            {heroText.description}
                         </p>
-                        <Link href="/categoria/colares" className="btn btn-primary animate-fadeIn">
-                            Explorar Coleção
+                        <Link href={heroText.buttonLink} className="btn btn-primary animate-fadeIn">
+                            {heroText.buttonText}
                         </Link>
                     </div>
                 </div>
@@ -128,18 +163,18 @@ export function HeroBanner() {
             <div className="container relative z-10 h-full flex items-center">
                 <div className="max-w-xl text-white">
                     <p className="uppercase tracking-[0.3em] text-sm mb-4 text-gold">
-                        Coleção Exclusiva
+                        {heroText.subtitle}
                     </p>
                     <h1 className="font-display text-4xl md:text-5xl lg:text-6xl mb-6 leading-tight">
-                        Joias que contam
+                        {heroText.title}
                         <br />
-                        <span className="text-gold italic">histórias</span>
+                        <span className="text-gold italic">{heroText.titleHighlight}</span>
                     </h1>
                     <p className="text-cream/90 text-lg mb-8 leading-relaxed">
-                        Semijoias artesanais feitas à mão com pedras brasileiras premium.
+                        {heroText.description}
                     </p>
-                    <Link href="/categoria/colares" className="btn btn-primary">
-                        Explorar Coleção
+                    <Link href={heroText.buttonLink} className="btn btn-primary">
+                        {heroText.buttonText}
                     </Link>
                 </div>
             </div>
@@ -187,3 +222,4 @@ export function HeroBanner() {
         </section>
     );
 }
+

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Metadata } from "next";
 import { AddToCartButton } from "@/components/product/AddToCartButton";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ProductGallery } from "@/components/product/ProductGallery";
@@ -10,12 +11,53 @@ import { ProductCustomizationCard } from "@/components/product/ProductCustomizat
 import { MessageCircle, Truck, ArrowRightLeft, AlertTriangle } from "lucide-react";
 
 const WHATSAPP_NUMBER = "5527999201077";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://wfsemijoias.com.br';
 
 // Revalidar a cada 60 segundos
 export const revalidate = 60;
 
 interface ProductPageProps {
     params: Promise<{ slug: string }>;
+}
+
+// SEO dinâmico para cada produto
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+    const { slug } = await params;
+    const product = await getProductBySlug(slug);
+
+    if (!product) {
+        return { title: "Produto não encontrado | WF Semijoias" };
+    }
+
+    const price = product.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const mainImage = product.images?.[0]?.url || "/products/brinco-ametista-1.jpg";
+    const imageUrl = mainImage.startsWith("http") ? mainImage : `${SITE_URL}${mainImage}`;
+    const description = product.description
+        ? `${product.description.substring(0, 150).trim()}...`
+        : `${product.name} por ${price}. Semijoia artesanal brasileira com garantia. Frete grátis acima de R$300.`;
+
+    return {
+        title: `${product.name} | WF Semijoias`,
+        description,
+        openGraph: {
+            title: `${product.name} - ${price}`,
+            description,
+            url: `${SITE_URL}/produto/${slug}`,
+            siteName: "WF Semijoias",
+            images: [{ url: imageUrl, width: 800, height: 800, alt: product.name }],
+            type: "website",
+            locale: "pt_BR",
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: `${product.name} - ${price}`,
+            description,
+            images: [imageUrl],
+        },
+        alternates: {
+            canonical: `${SITE_URL}/produto/${slug}`,
+        },
+    };
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {

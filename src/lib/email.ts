@@ -7,12 +7,24 @@ function getResend(): Resend | null {
   if (!resendInstance) {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
-      console.warn('RESEND_API_KEY not configured');
+      console.error('[EMAIL] ❌ RESEND_API_KEY não configurada — nenhum email será enviado. Configure a variável de ambiente.');
       return null;
     }
     resendInstance = new Resend(apiKey);
+    console.log('[EMAIL] ✅ Resend inicializado com sucesso');
   }
   return resendInstance;
+}
+
+// Diagnóstico do serviço de email (usada pelo debug endpoint)
+export function getEmailServiceStatus() {
+  const apiKey = process.env.RESEND_API_KEY;
+  return {
+    configured: !!apiKey,
+    apiKeyPrefix: apiKey ? `${apiKey.substring(0, 8)}...` : null,
+    fromEmail: FROM_EMAIL,
+    siteUrl: SITE_URL,
+  };
 }
 
 // Email base da loja
@@ -36,6 +48,7 @@ const emailStyles = `
 export async function sendWelcomeEmail(to: string, name: string) {
   const resend = getResend();
   if (!resend) return { success: false, error: 'Email service not configured' };
+  console.log(`[EMAIL] Enviando boas-vindas para ${to}`);
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
@@ -70,9 +83,10 @@ export async function sendWelcomeEmail(to: string, name: string) {
         </html>
       `,
     });
+    console.log(`[EMAIL] ✅ Boas-vindas enviado para ${to}`);
     return { success: true };
   } catch (error) {
-    console.error('Erro ao enviar email de boas-vindas:', error);
+    console.error(`[EMAIL] ❌ Falha ao enviar boas-vindas para ${to}:`, error);
     return { success: false, error };
   }
 }
@@ -81,7 +95,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
 export async function sendPasswordResetEmail(to: string, name: string, resetToken: string) {
   const resend = getResend();
   if (!resend) return { success: false, error: 'Email service not configured' };
-
+  console.log(`[EMAIL] Enviando reset de senha para ${to}`);
   const resetUrl = `${SITE_URL}/redefinir-senha?token=${resetToken}`;
 
   try {
@@ -114,9 +128,10 @@ export async function sendPasswordResetEmail(to: string, name: string, resetToke
         </html>
       `,
     });
+    console.log(`[EMAIL] ✅ Reset de senha enviado para ${to}`);
     return { success: true };
   } catch (error) {
-    console.error('Erro ao enviar email de recuperação:', error);
+    console.error(`[EMAIL] ❌ Falha ao enviar reset de senha para ${to}:`, error);
     return { success: false, error };
   }
 }
@@ -131,6 +146,7 @@ export async function sendOrderConfirmationEmail(
 ) {
   const resend = getResend();
   if (!resend) return { success: false, error: 'Email service not configured' };
+  console.log(`[EMAIL] Enviando confirmação do pedido ${orderId} para ${to}`);
   const itemsHtml = items.map(item => `
     <tr>
       <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name}</td>
@@ -188,9 +204,10 @@ export async function sendOrderConfirmationEmail(
         </html>
       `,
     });
+    console.log(`[EMAIL] ✅ Confirmação do pedido ${orderId} enviada para ${to}`);
     return { success: true };
   } catch (error) {
-    console.error('Erro ao enviar email de confirmação:', error);
+    console.error(`[EMAIL] ❌ Falha ao enviar confirmação do pedido ${orderId} para ${to}:`, error);
     return { success: false, error };
   }
 }
@@ -204,6 +221,7 @@ export async function sendShippingEmail(
 ) {
   const resend = getResend();
   if (!resend) return { success: false, error: 'Email service not configured' };
+  console.log(`[EMAIL] Enviando notificação de envio do pedido ${orderId} para ${to}`);
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
@@ -240,9 +258,10 @@ export async function sendShippingEmail(
         </html>
       `,
     });
+    console.log(`[EMAIL] ✅ Notificação de envio do pedido ${orderId} enviada para ${to}`);
     return { success: true };
   } catch (error) {
-    console.error('Erro ao enviar email de envio:', error);
+    console.error(`[EMAIL] ❌ Falha ao enviar notificação de envio para ${to}:`, error);
     return { success: false, error };
   }
 }
@@ -253,7 +272,7 @@ export async function sendStockAlertEmail(
 ) {
   const resend = getResend();
   if (!resend) return { success: false, error: 'Email service not configured' };
-
+  console.log(`[EMAIL] Enviando alerta de estoque para ${products.length} produtos`);
   // Admin email - pode ser configurado via env ou usar o mesmo do remetente por enquanto
   const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'contato@wfsemijoias.com.br';
 
@@ -308,9 +327,10 @@ export async function sendStockAlertEmail(
         </html>
       `,
     });
+    console.log(`[EMAIL] ✅ Alerta de estoque enviado`);
     return { success: true };
   } catch (error) {
-    console.error('Erro ao enviar alerta de estoque:', error);
+    console.error(`[EMAIL] ❌ Falha ao enviar alerta de estoque:`, error);
     return { success: false, error };
   }
 }
@@ -319,6 +339,7 @@ export async function sendStockAlertEmail(
 export async function sendAbandonedCartEmail(to: string, name: string, recoverLink: string) {
   const resend = getResend();
   if (!resend) return { success: false, error: 'Email service not configured' };
+  console.log(`[EMAIL] Enviando email de carrinho abandonado para ${to}`);
 
   try {
     await resend.emails.send({
@@ -352,9 +373,10 @@ export async function sendAbandonedCartEmail(to: string, name: string, recoverLi
         </html>
       `,
     });
+    console.log(`[EMAIL] ✅ Carrinho abandonado enviado para ${to}`);
     return { success: true };
   } catch (error) {
-    console.error('Erro ao enviar email de carrinho abandonado:', error);
+    console.error(`[EMAIL] ❌ Falha ao enviar email de carrinho abandonado para ${to}:`, error);
     return { success: false, error };
   }
 }
