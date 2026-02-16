@@ -37,7 +37,20 @@ export default async function LinhaPage({ params }: PageProps) {
         notFound();
     }
 
-    const products = await getProductsByLine(resolvedParams.slug);
+    const productsRaw = await getProductsByLine(resolvedParams.slug);
+
+    // Formatar produtos para o formato esperado pelo ProductCard
+    const products = productsRaw.map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        price: product.price,
+        comparePrice: product.compare_price,
+        images: product.images?.map((img: any) => img.url) || ["/products/brinco-ametista-1.jpg"],
+        category: product.category?.name || "Semijoias",
+        isNew: product.is_new,
+        isFeatured: product.is_featured,
+    }));
 
     return (
         <div className="min-h-screen bg-offwhite">
