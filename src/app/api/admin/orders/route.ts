@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendShippingEmail } from "@/lib/email";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // Cliente Supabase Admin
 function getSupabaseAdmin() {
@@ -13,6 +14,9 @@ function getSupabaseAdmin() {
 
 // GET - Listar pedidos com filtros
 export async function GET(request: NextRequest) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
@@ -76,6 +80,9 @@ export async function GET(request: NextRequest) {
 
 // PUT - Atualizar pedido (status, tracking, etc)
 export async function PUT(request: NextRequest) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });

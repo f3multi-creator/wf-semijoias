@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAdmin } from "@/lib/admin-auth";
 
 function getSupabase() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -13,6 +14,9 @@ export async function PATCH(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabase = getSupabase();
     if (!supabase) {
         return NextResponse.json({ error: "Database not configured" }, { status: 500 });
@@ -48,6 +52,9 @@ export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabase = getSupabase();
     if (!supabase) {
         return NextResponse.json({ error: "Database not configured" }, { status: 500 });

@@ -5,12 +5,11 @@ import { sendStockAlertEmail } from "@/lib/email";
 export const revalidate = 0;
 
 export async function GET(request: Request) {
-    // Opcional: Verificar segredo do Cron para segurança
+    // Verificar segredo do Cron (obrigatório em produção)
     const authHeader = request.headers.get("authorization");
-    if (
-        process.env.CRON_SECRET &&
-        authHeader !== `Bearer ${process.env.CRON_SECRET}`
-    ) {
+    const cronSecret = process.env.CRON_SECRET;
+
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

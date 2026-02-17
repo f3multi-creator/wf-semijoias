@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // Cliente Supabase Admin
 function getSupabaseAdmin() {
@@ -11,6 +12,9 @@ function getSupabaseAdmin() {
 }
 
 export async function POST(request: NextRequest) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
@@ -80,6 +84,9 @@ export async function POST(request: NextRequest) {
 
 // DELETE - Remover imagem do storage
 export async function DELETE(request: NextRequest) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // Cliente Supabase Admin (com service role para bypass do RLS)
 function getSupabaseAdmin() {
@@ -15,6 +16,9 @@ function getSupabaseAdmin() {
 
 // GET - Listar todas as linhas
 export async function GET() {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
@@ -36,6 +40,9 @@ export async function GET() {
 
 // POST - Criar nova linha
 export async function POST(request: NextRequest) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
@@ -72,6 +79,9 @@ export async function POST(request: NextRequest) {
 
 // PUT - Atualizar linha
 export async function PUT(request: NextRequest) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
@@ -109,6 +119,9 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Remover linha
 export async function DELETE(request: NextRequest) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });

@@ -5,7 +5,7 @@ export const siteConfig = {
     url: process.env.NEXT_PUBLIC_SITE_URL || "https://wfsemijoias.com.br",
 
     // Contato
-    whatsapp: "5511999999999", // Número do WhatsApp (DDD + número sem espaços)
+    whatsapp: "5527999207797", // Número do WhatsApp (DDD + número sem espaços)
     email: "contato@wfsemijoias.com.br",
     instagram: "@wfsemijoias",
 
@@ -25,36 +25,36 @@ export const siteConfig = {
 export const messageTemplates = {
     // Mensagem para cliente - Pedido confirmado
     orderConfirmed: (orderNumber: number, customerName: string) => `
-Olá ${customerName}! 🌟
+Olá ${customerName}!
 
 Seu pedido #${orderNumber} foi confirmado com sucesso na WF Semijoias!
 
-📦 Prazo de envio: até ${siteConfig.shipping.processingDays} dias úteis após a confirmação do pagamento.
+Prazo de envio: até ${siteConfig.shipping.processingDays} dias úteis após a confirmação do pagamento.
 
 Você receberá o código de rastreio assim que o pedido for enviado.
 
 Qualquer dúvida, estamos à disposição!
 
-✨ WF Semijoias
+WF Semijoias
   `.trim(),
 
     // Mensagem para cliente - Pedido enviado
     orderShipped: (orderNumber: number, customerName: string, trackingCode: string) => `
-Olá ${customerName}! 🎉
+Olá ${customerName}!
 
 Ótima notícia! Seu pedido #${orderNumber} foi enviado!
 
-📦 Código de rastreio: ${trackingCode}
-🔗 Rastreie em: https://rastreamento.correios.com.br
+Código de rastreio: ${trackingCode}
+Rastreie em: https://rastreamento.correios.com.br
 
 Prazo estimado de entrega: ${siteConfig.shipping.sedexDays} dias úteis (Sedex) ou ${siteConfig.shipping.pacDays} dias úteis (PAC).
 
-✨ WF Semijoias
+WF Semijoias
   `.trim(),
 
     // Mensagem para admin - Novo pedido
     newOrderAdmin: (orderNumber: number, customerName: string, total: string) => `
-🔔 NOVO PEDIDO #${orderNumber}
+NOVO PEDIDO #${orderNumber}
 
 Cliente: ${customerName}
 Total: ${total}

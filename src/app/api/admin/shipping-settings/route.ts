@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // Lazy-load Supabase client para evitar erro no build
 let supabaseAdminInstance: SupabaseClient | null = null;
@@ -17,6 +18,9 @@ function getSupabaseAdmin(): SupabaseClient | null {
 }
 
 export async function GET() {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
@@ -58,6 +62,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });

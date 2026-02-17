@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import crypto from "crypto";
 
 interface MercadoPagoWebhook {
     action: string;
@@ -91,6 +92,40 @@ async function getPaymentDetails(paymentId: string): Promise<MercadoPagoPayment 
 
 export async function POST(request: NextRequest) {
     try {
+        // --- Verificação de assinatura HMAC ---
+        const webhookSecret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+        if (webhookSecret) {
+            const xSignature = request.headers.get('x-signature');
+            const xRequestId = request.headers.get('x-request-id');
+
+            if (xSignature && xRequestId) {
+                // Extrair ts e v1 do header
+                const parts = xSignature.split(',');
+                const tsValue = parts.find(p => p.trim().startsWith('ts='))?.split('=')[1];
+                const hashValue = parts.find(p => p.trim().startsWith('v1='))?.split('=')[1];
+
+                if (tsValue && hashValue) {
+                    // Reconstruir o body para validação
+                    const url = new URL(request.url);
+                    const dataId = url.searchParams.get('data.id') || url.searchParams.get('id') || '';
+
+                    // Template: id:[data.id];request-id:[x-request-id];ts:[ts];
+                    const manifest = `id:${dataId};request-id:${xRequestId};ts:${tsValue};`;
+                    const hmac = crypto.createHmac('sha256', webhookSecret)
+                        .update(manifest)
+                        .digest('hex');
+
+                    if (hmac !== hashValue) {
+                        console.error('Webhook: assinatura HMAC inválida');
+                        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+                    }
+                    console.log('Webhook: assinatura HMAC verificada com sucesso');
+                }
+            }
+        } else {
+            console.warn('MERCADO_PAGO_WEBHOOK_SECRET não configurado — webhook aceito sem verificação');
+        }
+
         const body: MercadoPagoWebhook = await request.json();
 
         // Log para debug
@@ -148,30 +183,64 @@ export async function POST(request: NextRequest) {
 
             if (updateError) {
                 console.error('Erro ao atualizar pedido:', updateError);
-                
+
                 // Se o pedido não existe, pode ser que ainda não foi criado
                 // (o webhook pode chegar antes do redirect do cliente)
                 if (updateError.code === 'PGRST116') {
                     console.log('Pedido ainda não existe, será criado pelo checkout');
                 }
-                
+
                 return NextResponse.json({ received: true, error: "update_failed" });
             }
 
             console.log(`Pedido ${payment.external_reference} atualizado com sucesso`);
             console.log(`Status: ${orderStatus}, Payment Status: ${paymentStatus}`);
 
-            // Se o pagamento foi aprovado, enviar email de confirmação
+            // Se o pagamento foi aprovado, decrementar estoque e enviar email
             if (payment.status === 'approved' && order) {
+                // --- Decrementar estoque ---
                 try {
-                    // Preparar itens para o email
+                    if (order.items && order.items.length > 0) {
+                        for (const item of order.items) {
+                            // Tentar decremento atômico via RPC
+                            const { error: rpcError } = await supabase.rpc('decrement_stock', {
+                                p_product_id: item.product_id,
+                                p_quantity: item.quantity,
+                            });
+
+                            if (rpcError) {
+                                // Fallback: decremento manual (buscar valor atual e subtrair)
+                                console.warn(`RPC decrement_stock não disponível, usando fallback para produto ${item.product_id}`);
+                                const { data: product } = await supabase
+                                    .from('products')
+                                    .select('stock_quantity')
+                                    .eq('id', item.product_id)
+                                    .single();
+
+                                if (product) {
+                                    const newStock = Math.max(0, (product.stock_quantity || 0) - item.quantity);
+                                    await supabase
+                                        .from('products')
+                                        .update({ stock_quantity: newStock })
+                                        .eq('id', item.product_id);
+                                }
+                            }
+                        }
+                        console.log(`Estoque decrementado para ${order.items.length} itens`);
+                    }
+                } catch (stockError) {
+                    console.error('Erro ao decrementar estoque:', stockError);
+                    // Não falhar o webhook por causa do estoque
+                }
+
+                // --- Enviar email de confirmação ---
+                try {
                     const emailItems = order.items?.map((item: any) => ({
                         name: item.product_name,
                         quantity: item.quantity,
                         price: item.unit_price,
                     })) || [];
 
-                    // Enviar email de confirmação
                     await sendOrderConfirmationEmail(
                         order.customer_email,
                         order.customer_name,
@@ -183,15 +252,14 @@ export async function POST(request: NextRequest) {
                     console.log(`Email de confirmação enviado para ${order.customer_email}`);
                 } catch (emailError) {
                     console.error('Erro ao enviar email de confirmação:', emailError);
-                    // Não falhar o webhook por causa do email
                 }
             }
 
-            return NextResponse.json({ 
-                received: true, 
+            return NextResponse.json({
+                received: true,
                 success: true,
                 orderId: order?.id,
-                status: orderStatus 
+                status: orderStatus
             });
         }
 
@@ -208,8 +276,8 @@ export async function POST(request: NextRequest) {
 
 // Endpoint GET para verificação do webhook (Mercado Pago pode fazer ping)
 export async function GET() {
-    return NextResponse.json({ 
-        status: "ok", 
+    return NextResponse.json({
+        status: "ok",
         message: "Webhook Mercado Pago ativo",
         timestamp: new Date().toISOString()
     });
