@@ -25,20 +25,24 @@ async function getDashboardData() {
     const orders = ordersResult.data || [];
     const products = productsResult.data || [];
 
-    // Calcular métricas
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
-    const averageTicket = orders.length > 0 ? totalRevenue / orders.length : 0;
+    // Apenas pedidos pagos (confirmed, shipped, delivered)
+    const paidStatuses = ['confirmed', 'shipped', 'delivered'];
+    const paidOrders = orders.filter(o => paidStatuses.includes(o.status));
 
-    // Pedidos por status
+    // Calcular métricas apenas com pedidos pagos
+    const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const averageTicket = paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
+
+    // Pedidos por status (todos, para visão geral)
     const ordersByStatus = orders.reduce((acc, o) => {
         acc[o.status] = (acc[o.status] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
 
-    // Vendas dos últimos 7 dias
+    // Vendas dos últimos 7 dias (apenas pagos)
     const last7Days = new Date();
     last7Days.setDate(last7Days.getDate() - 7);
-    const recentOrders = orders.filter(o => new Date(o.created_at) >= last7Days);
+    const recentOrders = paidOrders.filter(o => new Date(o.created_at) >= last7Days);
     const recentRevenue = recentOrders.reduce((sum, o) => sum + (o.total || 0), 0);
 
     // Produtos com estoque baixo
