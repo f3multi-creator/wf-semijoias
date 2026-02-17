@@ -59,13 +59,9 @@ export default async function NovidadesPage() {
             <section className="section bg-cream">
                 <div className="container">
                     <div className="text-center mb-12">
-                        <h1 className="font-display text-4xl md:text-5xl text-dark mb-4">
+                        <h1 className="font-display text-4xl md:text-5xl text-dark">
                             Novidades
                         </h1>
-                        <p className="text-taupe max-w-2xl mx-auto">
-                            Confira as peças adicionadas nos últimos 30 dias.
-                            Semijoias artesanais feitas à mão com pedras brasileiras premium.
-                        </p>
                     </div>
 
                     {/* Products Grid */}

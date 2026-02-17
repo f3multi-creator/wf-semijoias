@@ -62,3 +62,33 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
+// PUT - Atualizar categoria
+export async function PUT(request: NextRequest) {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
+        return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
+    }
+
+    try {
+        const body = await request.json();
+        const { id, ...updateData } = body;
+
+        if (!id) {
+            return NextResponse.json({ error: "ID é obrigatório" }, { status: 400 });
+        }
+
+        const { data, error } = await supabase
+            .from("categories")
+            .update(updateData)
+            .eq("id", id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return NextResponse.json(data);
+    } catch (error: any) {
+        console.error("Erro ao atualizar categoria:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
