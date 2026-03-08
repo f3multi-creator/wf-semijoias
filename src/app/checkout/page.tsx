@@ -649,14 +649,12 @@ export default function CheckoutPage() {
                                 )}
                                 <div className="flex justify-between text-sm">
                                     <span className="text-taupe">Frete</span>
-                                    <span className={shipping === 0 ? "text-green-600" : "text-dark"}>
+                                    <span className={selectedShipping && subtotal >= 300 && selectedShipping.price <= 25 ? "text-green-600" : "text-dark"}>
                                         {selectedShipping
                                             ? subtotal >= 300 && selectedShipping.price <= 25
                                                 ? "Grátis"
                                                 : formatPrice(selectedShipping.price)
-                                            : shipping === 0
-                                                ? "Grátis"
-                                                : "Calcular"}
+                                            : "Calculado na entrega"}
                                     </span>
                                 </div>
                             </div>

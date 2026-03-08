@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabaseAdmin() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-    if (!url || !key) return null;
-    return createClient(url, key);
-}
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(request: NextRequest) {
     const supabase = getSupabaseAdmin();
@@ -21,6 +14,15 @@ export async function GET(request: NextRequest) {
     if (!query || query.length < 2) {
         return NextResponse.json([]);
     }
+
+    // Sanitizar query contra manipulação PostgREST
+    const sanitized = query.replace(/[%_(),."'\\]/g, '');
+    if (!sanitized) {
+        return NextResponse.json([]);
+    }
+
+    // Sanitizar lineSlug
+    const sanitizedLine = lineSlug ? lineSlug.replace(/[%_(),."'\\]/g, '') : '';
 
     try {
         let queryBuilder = supabase
@@ -40,18 +42,11 @@ export async function GET(request: NextRequest) {
                 )
             `)
             .eq("is_active", true)
-            .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+            .or(`name.ilike.%${sanitized}%,description.ilike.%${sanitized}%`)
             .order("name")
             .limit(50);
 
-        // Se houver filtro de linha, precisamos filtrar
-        // O Supabase não tem um "where exists" simples via API JS para relação N:N
-        // Então vamos filtrar no código ou fazer uma query inversa se necessário
-        // Mas como 'lines' está no select, podemos filtrar depois ou usar modificadores !inner
-
-        if (lineSlug) {
-            // Usando !inner para forçar o join e filtrar pela linha
-            // Mantendo a mesma estrutura de retorno (alias 'lines') para compatibilidade de tipos
+        if (sanitizedLine) {
             queryBuilder = supabase
                 .from("products")
                 .select(`
@@ -69,8 +64,8 @@ export async function GET(request: NextRequest) {
                     )
                 `)
                 .eq("is_active", true)
-                .eq("lines.line.slug", lineSlug)
-                .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+                .eq("lines.line.slug", sanitizedLine)
+                .or(`name.ilike.%${sanitized}%,description.ilike.%${sanitized}%`)
                 .order("name");
         }
 
@@ -78,7 +73,6 @@ export async function GET(request: NextRequest) {
 
         if (error) throw error;
 
-        // Formatar produtos para o frontend
         const products = (data || []).map((product: any) => ({
             id: product.id,
             name: product.name,
@@ -89,15 +83,14 @@ export async function GET(request: NextRequest) {
                 || product.images?.[0]?.url
                 || "/products/placeholder.jpg",
             category: product.category?.name || "Semijoias",
-            // Extrair linhas se disponível (depende da query usada)
             lines: product.lines?.map((pl: any) => pl.line)
                 || product.product_lines?.map((pl: any) => pl.line)
                 || []
         }));
 
         return NextResponse.json(products);
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro na busca:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao buscar produtos" }, { status: 500 });
     }
 }

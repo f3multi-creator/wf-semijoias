@@ -30,7 +30,7 @@ export default function SearchPage() {
 
     // Carregar linhas disponíveis
     useEffect(() => {
-        fetch("/api/admin/lines")
+        fetch("/api/lines")
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) setLines(data);
