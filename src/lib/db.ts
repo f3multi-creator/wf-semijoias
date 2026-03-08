@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getSupabaseAdmin } from './supabase-admin';
 import type { Product, Category, Collection, Line } from '@/types/database';
 
 // ============================================
@@ -305,8 +306,14 @@ export async function createOrder(orderData: {
         total: number;
     }>;
 }) {
+    const adminClient = getSupabaseAdmin();
+    if (!adminClient) {
+        console.error('Supabase admin não configurado para criar pedido');
+        return null;
+    }
+
     // Criar pedido
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await adminClient
         .from('orders')
         .insert({
             customer_email: orderData.customer_email,
@@ -337,7 +344,7 @@ export async function createOrder(orderData: {
         ...item,
     }));
 
-    const { error: itemsError } = await supabase
+    const { error: itemsError } = await adminClient
         .from('order_items')
         .insert(itemsToInsert);
 
@@ -356,7 +363,13 @@ export async function updateOrderPayment(
         payment_method?: string;
     }
 ) {
-    const { data, error } = await supabase
+    const adminClient = getSupabaseAdmin();
+    if (!adminClient) {
+        console.error('Supabase admin não configurado para atualizar pagamento');
+        return null;
+    }
+
+    const { data, error } = await adminClient
         .from('orders')
         .update({
             payment_id: paymentData.payment_id,
