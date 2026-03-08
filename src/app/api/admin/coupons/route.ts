@@ -13,6 +13,21 @@ export async function GET(request: NextRequest) {
     }
 
     try {
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get("id");
+
+        // Buscar cupom individual por ID
+        if (id) {
+            const { data, error } = await supabase
+                .from("coupons")
+                .select("*")
+                .eq("id", id)
+                .single();
+
+            if (error) throw error;
+            return NextResponse.json(data);
+        }
+
         // Listar todos os cupons (admin only)
         const { data, error } = await supabase
             .from("coupons")

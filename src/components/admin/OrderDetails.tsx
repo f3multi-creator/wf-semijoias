@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { supabase } from "@/lib/supabase";
 
 interface OrderDetailsProps {
     order: any;
@@ -46,22 +45,25 @@ export function OrderDetails({ order }: OrderDetailsProps) {
         setSaving(true);
         setMessage("");
 
-        const { error } = await supabase
-            .from("orders")
-            .update({
-                status,
-                tracking_code: trackingCode || null,
-                notes: notes || null,
-            })
-            .eq("id", order.id);
+        try {
+            const response = await fetch("/api/admin/orders", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: order.id,
+                    status,
+                    tracking_code: trackingCode || null,
+                    notes: notes || null,
+                }),
+            });
 
-        if (error) {
-            setMessage("Erro ao salvar. Tente novamente.");
-        } else {
+            if (!response.ok) {
+                throw new Error("Erro ao salvar");
+            }
+
             setMessage("Pedido atualizado com sucesso!");
-
-            // TODO: Enviar notificação ao cliente via WhatsApp/Email
-            // Se status mudou para 'shipped', enviar código de rastreio
+        } catch (error) {
+            setMessage("Erro ao salvar. Tente novamente.");
         }
 
         setSaving(false);

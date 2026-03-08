@@ -1,15 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 // Revalidar a cada requisição
 export const revalidate = 0;
-
-function getSupabaseAdmin() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-    if (!url || !key) return null;
-    return createClient(url, key);
-}
 
 async function getDashboardData() {
     const supabase = getSupabaseAdmin();

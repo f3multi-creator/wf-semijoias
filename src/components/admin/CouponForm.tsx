@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 
 interface CouponFormProps {
     couponId?: string;
@@ -29,31 +28,32 @@ export function CouponForm({ couponId }: CouponFormProps) {
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // Carregar cupom para edição
+    // Carregar cupom para edição via API
     useEffect(() => {
         if (!couponId) return;
 
         async function loadCoupon() {
             setLoading(true);
-            const { data: coupon } = await supabase
-                .from("coupons")
-                .select("*")
-                .eq("id", couponId)
-                .single();
+            try {
+                const response = await fetch(`/api/admin/coupons?id=${couponId}`);
+                const coupon = await response.json();
 
-            if (coupon) {
-                setForm({
-                    code: coupon.code,
-                    description: coupon.description || "",
-                    discount_type: coupon.discount_type,
-                    discount_value: coupon.discount_value.toString(),
-                    minimum_order_value: coupon.minimum_order_value?.toString() || "",
-                    max_uses: coupon.max_uses?.toString() || "",
-                    max_uses_per_customer: coupon.max_uses_per_customer?.toString() || "1",
-                    starts_at: coupon.starts_at ? coupon.starts_at.split("T")[0] : "",
-                    expires_at: coupon.expires_at ? coupon.expires_at.split("T")[0] : "",
-                    is_active: coupon.is_active,
-                });
+                if (coupon && !coupon.error) {
+                    setForm({
+                        code: coupon.code,
+                        description: coupon.description || "",
+                        discount_type: coupon.discount_type,
+                        discount_value: coupon.discount_value.toString(),
+                        minimum_order_value: coupon.minimum_order_value?.toString() || "",
+                        max_uses: coupon.max_uses?.toString() || "",
+                        max_uses_per_customer: coupon.max_uses_per_customer?.toString() || "1",
+                        starts_at: coupon.starts_at ? coupon.starts_at.split("T")[0] : "",
+                        expires_at: coupon.expires_at ? coupon.expires_at.split("T")[0] : "",
+                        is_active: coupon.is_active,
+                    });
+                }
+            } catch (error) {
+                console.error("Erro ao carregar cupom:", error);
             }
             setLoading(false);
         }
@@ -116,17 +116,18 @@ export function CouponForm({ couponId }: CouponFormProps) {
                 is_active: form.is_active,
             };
 
-            if (couponId) {
-                const { error } = await supabase
-                    .from("coupons")
-                    .update(couponData)
-                    .eq("id", couponId);
+            const method = couponId ? "PUT" : "POST";
+            const body = couponId ? { id: couponId, ...couponData } : couponData;
 
-                if (error) throw error;
-            } else {
-                const { error } = await supabase.from("coupons").insert(couponData);
+            const response = await fetch("/api/admin/coupons", {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
 
-                if (error) throw error;
+            if (!response.ok) {
+                const result = await response.json();
+                throw new Error(result.error || "Erro ao salvar cupom");
             }
 
             router.push("/admin/cupons");
