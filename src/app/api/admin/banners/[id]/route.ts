@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdmin } from "@/lib/admin-auth";
-
-function getSupabase() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) return null;
-    return createClient(url, key);
-}
 
 // PATCH - Atualizar banner (ativo, posição, alt)
 export async function PATCH(
@@ -17,7 +10,7 @@ export async function PATCH(
     const adminCheck = await requireAdmin();
     if (!adminCheck.authorized) return adminCheck.response;
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
@@ -41,9 +34,9 @@ export async function PATCH(
         if (error) throw error;
 
         return NextResponse.json({ banner: data });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao atualizar banner:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao atualizar banner" }, { status: 500 });
     }
 }
 
@@ -55,7 +48,7 @@ export async function DELETE(
     const adminCheck = await requireAdmin();
     if (!adminCheck.authorized) return adminCheck.response;
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
@@ -71,8 +64,8 @@ export async function DELETE(
         if (error) throw error;
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao excluir banner:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao excluir banner" }, { status: 500 });
     }
 }

@@ -1,20 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdmin } from "@/lib/admin-auth";
-
-// Cliente Supabase Admin (com service role para bypass do RLS)
-function getSupabaseAdmin() {
-    // .trim() remove possíveis \r\n que podem estar no final das variáveis
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-    if (!url || !key) {
-        console.error("Supabase não configurado:", { url: !!url, key: !!key });
-        return null;
-    }
-
-    return createClient(url, key);
-}
 
 // GET - Listar produtos ou buscar por ID
 export async function GET(request: NextRequest) {
@@ -71,7 +57,11 @@ export async function GET(request: NextRequest) {
 
             // Filtro por busca (nome ou slug)
             if (search) {
-                query = query.or(`name.ilike.%${search}%,slug.ilike.%${search}%`);
+                // Sanitiza caracteres especiais do PostgREST para evitar manipulação de query
+                const sanitized = search.replace(/[%_(),."'\\]/g, '');
+                if (sanitized) {
+                    query = query.or(`name.ilike.%${sanitized}%,slug.ilike.%${sanitized}%`);
+                }
             }
 
             // Filtro por categoria
@@ -89,9 +79,9 @@ export async function GET(request: NextRequest) {
             if (error) throw error;
             return NextResponse.json(data);
         }
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao buscar produtos:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao buscar produtos" }, { status: 500 });
     }
 }
 
@@ -141,9 +131,9 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json(product, { status: 201 });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao criar produto:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao criar produto" }, { status: 500 });
     }
 }
 
@@ -216,9 +206,9 @@ export async function PUT(request: NextRequest) {
         }
 
         return NextResponse.json(product);
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao atualizar produto:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao atualizar produto" }, { status: 500 });
     }
 }
 
@@ -255,8 +245,8 @@ export async function DELETE(request: NextRequest) {
         if (error) throw error;
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao deletar produto:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao deletar produto" }, { status: 500 });
     }
 }

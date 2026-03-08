@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendShippingEmail } from "@/lib/email";
 import { requireAdmin } from "@/lib/admin-auth";
-
-// Cliente Supabase Admin
-function getSupabaseAdmin() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-    if (!url || !key) return null;
-    return createClient(url, key);
-}
 
 // GET - Listar pedidos com filtros
 export async function GET(request: NextRequest) {
@@ -72,9 +63,9 @@ export async function GET(request: NextRequest) {
 
         if (error) throw error;
         return NextResponse.json(data || []);
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao buscar pedidos:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao buscar pedidos" }, { status: 500 });
     }
 }
 
@@ -128,8 +119,8 @@ export async function PUT(request: NextRequest) {
         }
 
         return NextResponse.json(data);
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao atualizar pedido:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao atualizar pedido" }, { status: 500 });
     }
 }

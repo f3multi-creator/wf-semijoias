@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdmin } from "@/lib/admin-auth";
-
-function getSupabase() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-    if (!url || !key) return null;
-    return createClient(url, key);
-}
 
 // GET - Obter configurações do hero
 export async function GET() {
     const adminCheck = await requireAdmin();
     if (!adminCheck.authorized) return adminCheck.response;
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
     }
@@ -57,7 +50,7 @@ export async function POST(request: NextRequest) {
     const adminCheck = await requireAdmin();
     if (!adminCheck.authorized) return adminCheck.response;
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
     }
@@ -84,50 +77,13 @@ export async function POST(request: NextRequest) {
             );
 
         if (error) {
-            // Se a tabela não existe, tentar criá-la
-            if (error.code === "42P01") {
-                console.log("[SETTINGS] Tabela site_settings não existe. Criando...");
-
-                // Tentar criar a tabela via SQL
-                const { error: createError } = await supabase.rpc("exec_sql", {
-                    sql: `
-                        CREATE TABLE IF NOT EXISTS site_settings (
-                            id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-                            key text UNIQUE NOT NULL,
-                            value jsonb NOT NULL DEFAULT '{}',
-                            created_at timestamptz DEFAULT now(),
-                            updated_at timestamptz DEFAULT now()
-                        );
-                    `
-                });
-
-                if (createError) {
-                    return NextResponse.json({
-                        error: "Tabela site_settings não existe. Crie no Supabase com a seguinte SQL:",
-                        sql: `CREATE TABLE site_settings (
-    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    key text UNIQUE NOT NULL,
-    value jsonb NOT NULL DEFAULT '{}',
-    created_at timestamptz DEFAULT now(),
-    updated_at timestamptz DEFAULT now()
-);`,
-                    }, { status: 500 });
-                }
-
-                // Tentar novamente
-                await supabase
-                    .from("site_settings")
-                    .upsert({ key: "hero_config", value: settings, updated_at: new Date().toISOString() }, { onConflict: "key" });
-            } else {
-                throw error;
-            }
+            console.error("[SETTINGS] Erro ao salvar hero_config:", error);
+            return NextResponse.json({ error: "Erro ao salvar configurações do hero" }, { status: 500 });
         }
 
         return NextResponse.json({ success: true, settings });
     } catch (error: unknown) {
         console.error("[SETTINGS] Erro ao salvar hero_config:", error);
-        return NextResponse.json({
-            error: error instanceof Error ? error.message : "Erro interno"
-        }, { status: 500 });
+        return NextResponse.json({ error: "Erro ao salvar configurações" }, { status: 500 });
     }
 }

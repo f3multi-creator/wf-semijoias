@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdmin } from "@/lib/admin-auth";
-
-// Cliente Supabase Admin (com service role para bypass do RLS)
-function getSupabaseAdmin() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-    if (!url || !key) {
-        return null;
-    }
-
-    return createClient(url, key);
-}
 
 // GET - Listar todas as coleções
 export async function GET() {
@@ -32,9 +20,9 @@ export async function GET() {
 
         if (error) throw error;
         return NextResponse.json(data);
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao buscar coleções:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro interno" }, { status: 500 });
     }
 }
 
@@ -73,9 +61,9 @@ export async function POST(request: NextRequest) {
 
         if (error) throw error;
         return NextResponse.json(data, { status: 201 });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao criar coleção:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro interno" }, { status: 500 });
     }
 }
 
@@ -115,9 +103,9 @@ export async function PUT(request: NextRequest) {
 
         if (error) throw error;
         return NextResponse.json(data);
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao atualizar coleção:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro interno" }, { status: 500 });
     }
 }
 
@@ -146,8 +134,8 @@ export async function DELETE(request: NextRequest) {
 
         if (error) throw error;
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao remover coleção:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro interno" }, { status: 500 });
     }
 }

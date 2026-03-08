@@ -1,13 +1,25 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdmin } from "@/lib/admin-auth";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function escapeHtml(str: string): string {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 
 export async function POST(request: Request) {
     const adminCheck = await requireAdmin();
     if (!adminCheck.authorized) return adminCheck.response;
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+        return NextResponse.json({ error: "Serviço de email não configurado" }, { status: 500 });
+    }
 
     try {
         const { subject, message } = await request.json();
@@ -16,16 +28,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Assunto e mensagem são obrigatórios" }, { status: 400 });
         }
 
-        // 1. Buscar todos os emails (ou newsletter subscribers)
-        // Por simplicidade, vamos pegar todos os customers que têm email.
-        // O ideal seria ter uma flag "newsletter_subscribed".
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        const supabase = getSupabaseAdmin();
+        if (!supabase) {
+            return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
+        }
 
         const { data: users, error } = await supabase
-            .from("customers") // Assumindo tabela customers
+            .from("customers")
             .select("email, name")
             .not("email", "is", null);
 
@@ -34,30 +43,27 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Nenhum usuário encontrado" }, { status: 404 });
         }
 
-        // 2. Enviar emails em lote (limitado pelo plano do Resend, cuidado)
-        // O plano gratuito do Resend permite 100 emails/dia. 
-        // Vamos limitar a 10 para teste/demonstração e evitar bloqueio.
         const limitedUsers = users.slice(0, 10);
+        const resend = new Resend(apiKey);
 
         const emails = limitedUsers.map(user => ({
             from: 'WF Semijoias <noreply@wfsemijoias.com.br>',
             to: user.email,
-            subject: subject,
+            subject: escapeHtml(subject),
             html: `
             <div style="font-family: sans-serif; color: #333;">
-                ${message}
+                ${escapeHtml(message).replace(/\n/g, '<br>')}
                 <br>
                 <hr>
                 <p style="font-size: 12px; color: #888;">
-                    Você recebeu este email porque é cliente WF Semijoias. 
+                    Você recebeu este email porque é cliente WF Semijoias.
                     <a href="#">Descadastrar</a>
                 </p>
             </div>
         `
         }));
 
-        // Enviar em batch
-        const { data, error: sendError } = await resend.batch.send(emails);
+        const { error: sendError } = await resend.batch.send(emails);
 
         if (sendError) {
             console.error("Resend Batch Error:", sendError);

@@ -125,7 +125,7 @@ export default function CheckoutPage() {
         setCouponError("");
 
         try {
-            const response = await fetch(`/api/admin/coupons?code=${couponCode.toUpperCase()}`);
+            const response = await fetch(`/api/coupons/validate?code=${couponCode.toUpperCase()}`);
             const data = await response.json();
 
             if (!response.ok) {

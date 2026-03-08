@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdmin } from "@/lib/admin-auth";
-
-// Lazy-load Supabase client para evitar erro no build
-let supabaseAdminInstance: SupabaseClient | null = null;
-function getSupabaseAdmin(): SupabaseClient | null {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        return null;
-    }
-    if (!supabaseAdminInstance) {
-        supabaseAdminInstance = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-    }
-    return supabaseAdminInstance;
-}
 
 export async function GET() {
     const adminCheck = await requireAdmin();

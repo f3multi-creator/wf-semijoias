@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdmin } from "@/lib/admin-auth";
-
-// Cliente Supabase Admin
-function getSupabaseAdmin() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-    if (!url || !key) return null;
-    return createClient(url, key);
-}
 
 export async function POST(request: NextRequest) {
     const adminCheck = await requireAdmin();
@@ -63,7 +54,7 @@ export async function POST(request: NextRequest) {
 
         if (error) {
             console.error("Erro no upload:", error);
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            return NextResponse.json({ error: "Erro no upload" }, { status: 500 });
         }
 
         // Obter URL pública
@@ -76,9 +67,9 @@ export async function POST(request: NextRequest) {
             url: publicUrl,
             fileName: fileName,
         });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro no upload:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro no upload" }, { status: 500 });
     }
 }
 
@@ -100,18 +91,23 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ error: "Nome do arquivo é obrigatório" }, { status: 400 });
         }
 
+        // Validar nome do arquivo: apenas nome simples, sem path traversal
+        if (fileName.includes('/') || fileName.includes('\\') || fileName.includes('..')) {
+            return NextResponse.json({ error: "Nome de arquivo inválido" }, { status: 400 });
+        }
+
         const { error } = await supabase.storage
             .from("products")
             .remove([fileName]);
 
         if (error) {
             console.error("Erro ao deletar:", error);
-            return NextResponse.json({ error: error.message }, { status: 500 });
+            return NextResponse.json({ error: "Erro no upload" }, { status: 500 });
         }
 
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error) {
         console.error("Erro ao deletar:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Erro no upload" }, { status: 500 });
     }
 }
