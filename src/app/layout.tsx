@@ -6,7 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { WhatsAppButton } from "@/components/layout/WhatsAppButton";
-import { CartSync } from "@/components/cart/CartSync";
+
 import { AnalyticsScripts } from "@/lib/analytics";
 
 const cormorant = Cormorant_Garamond({
@@ -82,7 +82,6 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${cormorant.variable} ${googleSans.variable}`}>
       <body className="min-h-screen flex flex-col">
         <AuthProvider>
-          <CartSync />
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

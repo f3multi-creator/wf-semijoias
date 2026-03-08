@@ -38,8 +38,6 @@ interface CartStore {
     getTotal: () => number;
 }
 
-const FREE_SHIPPING_THRESHOLD = 300; // Frete grátis acima de R$ 300
-
 export const useCart = create<CartStore>()(
     persist(
         (set, get) => ({
@@ -70,7 +68,7 @@ export const useCart = create<CartStore>()(
 
                     // Adiciona novo item
                     return {
-                        items: [...state.items, { product, quantity }],
+                        items: [...state.items, { product, quantity: Math.min(quantity, product.stock_quantity) }],
                         isOpen: true,
                     };
                 });
