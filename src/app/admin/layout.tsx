@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-// Emails autorizados para acessar o admin
-const ADMIN_EMAILS = ["romulofelisberto@gmail.com"];
+// Importar lista centralizada de admins
+const ADMIN_EMAILS = ["romulofelisberto@gmail.com"]; // Fallback client-side (server usa config.ts)
 
 // Ícones SVG inline para evitar dependências
 const icons = {

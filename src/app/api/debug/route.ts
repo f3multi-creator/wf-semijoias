@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET() {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const melhorEnvioToken = process.env.MELHOR_ENVIO_TOKEN;
 

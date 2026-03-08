@@ -1,3 +1,8 @@
+// Emails autorizados para acessar o admin
+export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "romulofelisberto@gmail.com")
+    .split(",")
+    .map((e) => e.trim().toLowerCase());
+
 // Configurações do site
 export const siteConfig = {
     name: "WF Semijoias",

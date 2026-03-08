@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmailServiceStatus, sendWelcomeEmail } from "@/lib/email";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // GET - Verificar status do serviço de email
 export async function GET() {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
     const status = getEmailServiceStatus();
 
     return NextResponse.json({
@@ -17,6 +20,9 @@ export async function GET() {
 
 // POST - Enviar email de teste
 export async function POST(request: NextRequest) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
+
     try {
         const { email, name } = await request.json();
 

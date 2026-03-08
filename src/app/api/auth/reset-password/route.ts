@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import bcrypt from "bcryptjs";
-
-function getSupabaseAdmin() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-    if (!url || !key) return null;
-    return createClient(url, key);
-}
 
 export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
@@ -22,8 +15,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
         }
 
-        if (password.length < 6) {
-            return NextResponse.json({ error: "Senha deve ter pelo menos 6 caracteres" }, { status: 400 });
+        if (password.length < 8) {
+            return NextResponse.json({ error: "Senha deve ter pelo menos 8 caracteres" }, { status: 400 });
         }
 
         // Buscar usuário pelo token

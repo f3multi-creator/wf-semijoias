@@ -1,8 +1,6 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-
-// Emails autorizados para acessar o admin
-const ADMIN_EMAILS = ["romulofelisberto@gmail.com"];
+import { ADMIN_EMAILS } from "@/lib/config";
 
 /**
  * Verifica se o usuário autenticado é admin.

@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabaseAdmin() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-    if (!url || !key) return null;
-    return createClient(url, key);
-}
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdmin } from "@/lib/admin-auth";
 
 // GET - Diagnóstico de categorias + normalização do slug "colares"
 export async function GET() {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });
@@ -53,6 +49,8 @@ export async function GET() {
 
 // POST - Normalizar: renomear qualquer variante de "cordão" para "Colares"
 export async function POST() {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
     const supabase = getSupabaseAdmin();
     if (!supabase) {
         return NextResponse.json({ error: "Supabase não configurado" }, { status: 500 });

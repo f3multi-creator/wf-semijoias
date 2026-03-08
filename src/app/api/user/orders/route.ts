@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabaseAdmin() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-    if (!url || !key) return null;
-    return createClient(url, key);
-}
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 // GET - Listar pedidos do usuário logado
 export async function GET(request: NextRequest) {

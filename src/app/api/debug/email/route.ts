@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from 'resend';
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET(request: NextRequest) {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
     const { searchParams } = new URL(request.url);
     const testEmail = searchParams.get('email') || 'f3multi@gmail.com';
 

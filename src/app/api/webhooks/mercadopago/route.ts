@@ -94,36 +94,48 @@ export async function POST(request: NextRequest) {
     try {
         // --- Verificação de assinatura HMAC ---
         const webhookSecret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
-        if (webhookSecret) {
+        const isProduction = process.env.NODE_ENV === 'production';
+
+        if (!webhookSecret) {
+            if (isProduction) {
+                console.error('CRÍTICO: MERCADO_PAGO_WEBHOOK_SECRET não configurado em produção');
+                return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+            }
+            console.warn('MERCADO_PAGO_WEBHOOK_SECRET não configurado — aceito apenas em dev');
+        } else {
             const xSignature = request.headers.get('x-signature');
             const xRequestId = request.headers.get('x-request-id');
 
-            if (xSignature && xRequestId) {
-                // Extrair ts e v1 do header
-                const parts = xSignature.split(',');
-                const tsValue = parts.find(p => p.trim().startsWith('ts='))?.split('=')[1];
-                const hashValue = parts.find(p => p.trim().startsWith('v1='))?.split('=')[1];
-
-                if (tsValue && hashValue) {
-                    // Reconstruir o body para validação
-                    const url = new URL(request.url);
-                    const dataId = url.searchParams.get('data.id') || url.searchParams.get('id') || '';
-
-                    // Template: id:[data.id];request-id:[x-request-id];ts:[ts];
-                    const manifest = `id:${dataId};request-id:${xRequestId};ts:${tsValue};`;
-                    const hmac = crypto.createHmac('sha256', webhookSecret)
-                        .update(manifest)
-                        .digest('hex');
-
-                    if (hmac !== hashValue) {
-                        console.error('Webhook: assinatura HMAC inválida');
-                        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-                    }
-                    console.log('Webhook: assinatura HMAC verificada com sucesso');
-                }
+            if (!xSignature || !xRequestId) {
+                console.error('Webhook: headers x-signature ou x-request-id ausentes');
+                return NextResponse.json({ error: 'Missing signature headers' }, { status: 401 });
             }
-        } else {
-            console.warn('MERCADO_PAGO_WEBHOOK_SECRET não configurado — webhook aceito sem verificação');
+
+            // Extrair ts e v1 do header
+            const parts = xSignature.split(',');
+            const tsValue = parts.find(p => p.trim().startsWith('ts='))?.split('=')[1];
+            const hashValue = parts.find(p => p.trim().startsWith('v1='))?.split('=')[1];
+
+            if (!tsValue || !hashValue) {
+                console.error('Webhook: formato de assinatura inválido');
+                return NextResponse.json({ error: 'Invalid signature format' }, { status: 401 });
+            }
+
+            // Reconstruir o body para validação
+            const url = new URL(request.url);
+            const dataId = url.searchParams.get('data.id') || url.searchParams.get('id') || '';
+
+            // Template: id:[data.id];request-id:[x-request-id];ts:[ts];
+            const manifest = `id:${dataId};request-id:${xRequestId};ts:${tsValue};`;
+            const hmac = crypto.createHmac('sha256', webhookSecret)
+                .update(manifest)
+                .digest('hex');
+
+            if (hmac !== hashValue) {
+                console.error('Webhook: assinatura HMAC inválida');
+                return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+            }
+            console.log('Webhook: assinatura HMAC verificada com sucesso');
         }
 
         const body: MercadoPagoWebhook = await request.json();

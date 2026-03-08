@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     const total = subtotal + finalShippingCost - discount;
 
     // Gera referência externa (ID do pedido)
-    const externalReference = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const externalReference = `ORDER_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
     // Criar pedido no banco de dados ANTES de redirecionar para o Mercado Pago
     const supabase = getSupabaseAdmin();
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Erro ao criar preferência:", error);
     return NextResponse.json(
-      { error: "Erro ao processar pagamento", details: String(error) },
+      { error: "Erro ao processar pagamento" },
       { status: 500 }
     );
   }

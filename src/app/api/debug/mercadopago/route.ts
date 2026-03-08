@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET() {
+    const adminCheck = await requireAdmin();
+    if (!adminCheck.authorized) return adminCheck.response;
     const isSandbox = process.env.MERCADO_PAGO_SANDBOX?.trim() === "true";
 
     let accessToken = isSandbox
