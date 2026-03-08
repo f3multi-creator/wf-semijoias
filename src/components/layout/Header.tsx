@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useCart } from "@/store/cart";
@@ -16,6 +16,37 @@ export function Header() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState("");
     const [suggestions, setSuggestions] = useState<any[]>([]);
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const accountRef = useRef<HTMLDivElement>(null);
+    const itemCount = getItemCount();
+
+    // Fechar dropdown de conta ao clicar fora
+    useEffect(() => {
+        if (!isAccountOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+                setIsAccountOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isAccountOpen]);
+
+    const debouncedSearch = useCallback((value: string) => {
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+        if (value.length > 2) {
+            searchTimeoutRef.current = setTimeout(() => {
+                fetch(`/api/products/search?q=${encodeURIComponent(value)}`)
+                    .then(res => res.json())
+                    .then(data => setSuggestions(data))
+                    .catch(() => setSuggestions([]));
+            }, 300);
+        } else {
+            setSuggestions([]);
+        }
+    }, []);
 
     const handleSearch = () => {
         if (searchTerm.trim().length > 1) {
@@ -154,7 +185,7 @@ export function Header() {
                         </button>
 
                         {/* Account - Dinâmico baseado em login */}
-                        <div className="relative hidden md:block">
+                        <div className="relative hidden md:block" ref={accountRef}>
                             {status === "loading" ? (
                                 <div className="p-2 w-5 h-5 animate-pulse bg-beige rounded-full" />
                             ) : session ? (
@@ -272,9 +303,9 @@ export function Header() {
                                 />
                             </svg>
                             {/* Cart Count Badge */}
-                            {getItemCount() > 0 && (
+                            {itemCount > 0 && (
                                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-white text-xs rounded-full flex items-center justify-center">
-                                    {getItemCount()}
+                                    {itemCount}
                                 </span>
                             )}
                         </button>
@@ -375,15 +406,7 @@ export function Header() {
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
-                                    // Debounce logic would be better, but for simplicity:
-                                    if (e.target.value.length > 2) {
-                                        fetch(`/api/products/search?q=${e.target.value}`)
-                                            .then(res => res.json())
-                                            .then(data => setSuggestions(data))
-                                            .catch(() => setSuggestions([]));
-                                    } else {
-                                        setSuggestions([]);
-                                    }
+                                    debouncedSearch(e.target.value);
                                 }}
                                 onKeyDown={handleKeyDown}
                                 placeholder="O que você está buscando?"

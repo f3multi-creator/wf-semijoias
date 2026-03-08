@@ -1,11 +1,15 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 
 const WHATSAPP_NUMBER = "5527999201077";
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Olá! Vim pelo site da WF Semijoias e gostaria de mais informações.")}`;
 
 export function Footer() {
     const currentYear = new Date().getFullYear();
+    const [newsletterSent, setNewsletterSent] = useState(false);
 
     const footerLinks = {
         institucional: [
@@ -65,19 +69,31 @@ export function Footer() {
                         <p className="text-stone mb-6">
                             Cadastre-se e ganhe 10% OFF na primeira compra
                         </p>
-                        <form className="flex flex-col sm:flex-row gap-3">
-                            <input
-                                type="email"
-                                placeholder="Seu melhor e-mail"
-                                className="flex-1 py-3 px-4 bg-charcoal border border-charcoal text-cream placeholder:text-stone focus:outline-none focus:border-gold transition-colors"
-                                required
-                            />
-                            <button
-                                type="submit"
-                                className="btn bg-gold text-white hover:bg-gold-dark whitespace-nowrap"
-                            >
-                                Quero Receber
-                            </button>
+                        <form
+                            className="flex flex-col sm:flex-row gap-3"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                setNewsletterSent(true);
+                            }}
+                        >
+                            {newsletterSent ? (
+                                <p className="text-gold text-sm py-3">Obrigado! Em breve você receberá nossas novidades.</p>
+                            ) : (
+                                <>
+                                    <input
+                                        type="email"
+                                        placeholder="Seu melhor e-mail"
+                                        className="flex-1 py-3 px-4 bg-charcoal border border-charcoal text-cream placeholder:text-stone focus:outline-none focus:border-gold transition-colors"
+                                        required
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="btn bg-gold text-white hover:bg-gold-dark whitespace-nowrap"
+                                    >
+                                        Quero Receber
+                                    </button>
+                                </>
+                            )}
                         </form>
                     </div>
                 </div>

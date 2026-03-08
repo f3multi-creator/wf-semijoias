@@ -146,8 +146,8 @@ export function CartDrawer() {
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-taupe">Frete</span>
-                                <span className={shipping === 0 ? "text-green-600" : "text-dark"}>
-                                    {shipping === 0 ? "Grátis" : formatPrice(shipping)}
+                                <span className="text-taupe italic">
+                                    Calculado no checkout
                                 </span>
                             </div>
                             <div className="flex justify-between text-lg font-medium pt-2 border-t border-beige">
