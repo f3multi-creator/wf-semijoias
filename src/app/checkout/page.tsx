@@ -217,9 +217,8 @@ export default function CheckoutPage() {
                         image: item.product.image,
                     })),
                     shipping: selectedShipping,
-                    discount,
+                    couponCode: appliedCoupon?.code || undefined,
                     customerEmail: session?.user?.email,
-                    customerPhone: phone // Passar telefone para a API (precisaria atualizar a API tb se quiser usar lá)
                 }),
             });
 
@@ -520,7 +519,7 @@ export default function CheckoutPage() {
                                             <p className="text-sm text-gray-500">
                                                 Tem dúvidas? Acesse nosso FAQ ou
                                                 <button
-                                                    onClick={() => window.open('https://wa.me/5527999207797', '_blank')}
+                                                    onClick={() => window.open('https://wa.me/5527999201077', '_blank')}
                                                     className="text-gold hover:underline ml-1 font-medium"
                                                 >
                                                     fale conosco no WhatsApp

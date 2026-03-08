@@ -10,7 +10,7 @@ export const siteConfig = {
     url: process.env.NEXT_PUBLIC_SITE_URL || "https://wfsemijoias.com.br",
 
     // Contato
-    whatsapp: "5527999207797", // Número do WhatsApp (DDD + número sem espaços)
+    whatsapp: "5527999201077", // Número do WhatsApp (DDD + número sem espaços)
     email: "contato@wfsemijoias.com.br",
     instagram: "@wfsemijoias",
 

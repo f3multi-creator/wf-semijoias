@@ -15,10 +15,12 @@ export default function OrderSuccessPage() {
     const paymentId = searchParams.get('payment_id');
     const status = searchParams.get('status') || searchParams.get('collection_status');
 
-    // Limpar o carrinho quando a página carregar (pagamento aprovado)
+    // Limpar o carrinho apenas quando vindo de um pagamento real (tem payment_id ou status)
     useEffect(() => {
-        clearCart();
-    }, [clearCart]);
+        if (paymentId || status) {
+            clearCart();
+        }
+    }, [clearCart, paymentId, status]);
 
     // URL do WhatsApp para dúvidas sobre o pedido
     const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(

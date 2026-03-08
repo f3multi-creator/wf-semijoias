@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import MelhorEnvio from "menv-js";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
-
-// Lazy-load Supabase client para evitar erro no build
-let supabaseInstance: SupabaseClient | null = null;
-function getSupabase(): SupabaseClient | null {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        return null;
-    }
-    if (!supabaseInstance) {
-        supabaseInstance = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        );
-    }
-    return supabaseInstance;
-}
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 interface ShippingSettings {
     cep_origem: string;
@@ -33,7 +18,7 @@ interface ShippingSettings {
 
 // Buscar configurações de frete do banco
 async function getShippingSettings(): Promise<ShippingSettings> {
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     if (!supabase) {
         return getDefaultSettings();
     }
@@ -218,12 +203,9 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error("Erro ao calcular frete:", error);
 
-        // Retorna erro detalhado para debug
         return NextResponse.json({
             success: false,
-            error: "Erro ao calcular frete",
-            errorMessage: error?.message || "Erro desconhecido",
-            errorDetails: error?.response?.data || null,
+            error: "Erro ao calcular frete. Tente novamente.",
         }, { status: 500 });
     }
 }

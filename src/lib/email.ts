@@ -1,5 +1,15 @@
 import { Resend } from 'resend';
 
+// Sanitiza strings para uso seguro em templates HTML de email
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Lazy loading do Resend para evitar erro no build
 let resendInstance: Resend | null = null;
 
@@ -64,7 +74,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
               <div class="logo">WF Semijoias</div>
             </div>
             <div class="content">
-              <h2>Olá, ${name}!</h2>
+              <h2>Olá, ${escapeHtml(name)}!</h2>
               <p>Seja muito bem-vinda à WF Semijoias!</p>
               <p>Sua conta foi criada com sucesso. Agora você pode:</p>
               <ul>
@@ -113,7 +123,7 @@ export async function sendPasswordResetEmail(to: string, name: string, resetToke
               <div class="logo">WF Semijoias</div>
             </div>
             <div class="content">
-              <h2>Olá, ${name}!</h2>
+              <h2>Olá, ${escapeHtml(name)}!</h2>
               <p>Você solicitou a redefinição da sua senha.</p>
               <p>Clique no botão abaixo para criar uma nova senha:</p>
               <a href="${resetUrl}" class="button">Redefinir Senha</a>
@@ -149,7 +159,7 @@ export async function sendOrderConfirmationEmail(
   console.log(`[EMAIL] Enviando confirmação do pedido ${orderId} para ${to}`);
   const itemsHtml = items.map(item => `
     <tr>
-      <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee;">${escapeHtml(item.name)}</td>
       <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
       <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">R$ ${item.price.toFixed(2)}</td>
     </tr>
@@ -171,8 +181,8 @@ export async function sendOrderConfirmationEmail(
             </div>
             <div class="content">
               <h2>Pedido Confirmado!</h2>
-              <p>Olá, ${name}!</p>
-              <p>Seu pedido <strong>#${orderId.slice(0, 8).toUpperCase()}</strong> foi recebido com sucesso.</p>
+              <p>Olá, ${escapeHtml(name)}!</p>
+              <p>Seu pedido <strong>#${escapeHtml(orderId.slice(0, 8).toUpperCase())}</strong> foi recebido com sucesso.</p>
               
               <table style="width: 100%; margin: 20px 0;">
                 <thead>
@@ -238,12 +248,12 @@ export async function sendShippingEmail(
             </div>
             <div class="content">
               <h2>Pedido Enviado!</h2>
-              <p>Olá, ${name}!</p>
-              <p>Ótima notícia! Seu pedido <strong>#${orderId.slice(0, 8).toUpperCase()}</strong> está a caminho.</p>
+              <p>Olá, ${escapeHtml(name)}!</p>
+              <p>Ótima notícia! Seu pedido <strong>#${escapeHtml(orderId.slice(0, 8).toUpperCase())}</strong> está a caminho.</p>
               
               <div style="background: #f5f5f5; padding: 20px; margin: 20px 0; text-align: center;">
                 <p style="margin: 0; color: #666;">Código de Rastreamento:</p>
-                <p style="font-size: 20px; font-weight: bold; margin: 10px 0;">${trackingCode}</p>
+                <p style="font-size: 20px; font-weight: bold; margin: 10px 0;">${escapeHtml(trackingCode)}</p>
               </div>
               
               <a href="https://www.linkcorreios.com.br/?id=${trackingCode}" class="button" target="_blank">Rastrear Pedido</a>
@@ -278,7 +288,7 @@ export async function sendStockAlertEmail(
 
   const productsHtml = products.map(p => `
     <tr>
-      <td style="padding: 10px; border-bottom: 1px solid #eee;">${p.name}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee;">${escapeHtml(p.name)}</td>
       <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center; color: #b8860b; font-weight: bold;">${p.stock}</td>
       <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
         <a href="${SITE_URL}/produto/${p.slug}" style="color: #1a1a1a; text-decoration: underline;">Ver</a>
@@ -356,7 +366,7 @@ export async function sendAbandonedCartEmail(to: string, name: string, recoverLi
               <div class="logo">WF Semijoias</div>
             </div>
             <div class="content">
-              <h2>Olá, ${name}!</h2>
+              <h2>Olá, ${escapeHtml(name)}!</h2>
               <p>Notamos que você deixou algumas peças lindas no seu carrinho.</p>
               <p>Elas estão te esperando, mas nosso estoque é limitado.</p>
               <p>Que tal finalizar sua compra agora?</p>
